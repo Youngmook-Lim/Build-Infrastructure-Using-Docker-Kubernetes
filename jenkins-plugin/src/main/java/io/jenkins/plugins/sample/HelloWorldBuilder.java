@@ -21,34 +21,22 @@ import org.kohsuke.stapler.DataBoundSetter;
 
 public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
-    private final String name;
-    private boolean useFrench;
+    private final String gitAddress;
+    private final String language;
+    private final String version;
 
     @DataBoundConstructor
-    public HelloWorldBuilder(String name) {
-        this.name = name;
+    public HelloWorldBuilder(String gitAddress, String language, String version) {
+        this.gitAddress = gitAddress;
+        this.language = language;
+        this.version = version;
     }
 
-    public String getName() {
-        return name;
-    }
 
-    public boolean isUseFrench() {
-        return useFrench;
-    }
-
-    @DataBoundSetter
-    public void setUseFrench(boolean useFrench) {
-        this.useFrench = useFrench;
-    }
 
     @Override
     public void perform(Run<?, ?> run, FilePath workspace, EnvVars env, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
-        if (useFrench) {
-            listener.getLogger().println("Bonjour, " + name + "!");
-        } else {
-            listener.getLogger().println("Hello, " + name + "!");
-        }
+
     }
 
     @Symbol("greet")
