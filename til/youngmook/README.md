@@ -179,3 +179,29 @@ docker run -d --rm --name=agent1 -p 4444:22 \
 -e "JENKINS_AGENT_SSH_PUBKEY=[your-public-key]" \
 jenkins/ssh-agent:alpine
 ```
+
+3. Jenkins Agent 설정
+
+   1. Jenkins dashboard → Manage Jenkins → Manage Nodes and clouds → New Node
+   2. Name : agent1
+   3. Type : Permanent Agent
+   4. Remote root directory : /home/jenkins
+      1. 여기에 workspace 디렉토리가 생성되고 젠킨스 잡 루트폴더가 여기에 생성되게 됨
+   5. Label: build-agent
+      1. 빌드 서버에 올라갈 젠킨스 에이전트를 동일 Label을 주어 빌드 요청을 build-agent로 등록된 에이전트에게 분산할 수 있음
+   6. Usage: “only build jobs with label expression”
+      1. 위에서 지정한 label을 지정한 젠킨스 Job만 실행
+   7. Launch method : Launch agents by SSH
+      1. Host : 에이전트가 위치할 호스트 IP
+      2. Credentials : 위에서 등록한 credentials
+      3. Host Key verification Strategy : Manually trusted key verification
+      4. 고급 → Port : 4444
+   8. Save
+   9. Log 확인 → Agent successfully connected and online 뜨면 성공
+
+4. 테스트용 Jenkins Job 생성
+   1. 새로운 Item → Job 이름 입력 → Freestyle project
+   2. **“필요할 경우 concurrent 빌드 실행” 클릭**
+      1. 여러 빌드가 요청될때 각 Agent에 분산하는 기능을 위해 필수
+   3. “Restrict where this project can be run” 클릭
+      1. Label Expression: build-agent (에이전트에서 설정해 놓은 명칭)
