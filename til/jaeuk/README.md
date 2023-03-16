@@ -1,3 +1,5 @@
 # Jaeuk`s til!!!
 
-lego~~
+### 2023.03.16
+
+젠킨스 PIPELINE SNIPPET GENERATING MANIPULATING
