@@ -1,10 +1,10 @@
-# Jenkins Master 설치
+## Jenkins Master 설치
 
-## 1. Main EC2 접속
+### 1. Main EC2 접속
 
 - 여유있다면 Termius로 접속하는 방법까지?
 
-## 2. Docker 설치
+### 2. Docker 설치
 
 1. package 업데이트
 
@@ -28,7 +28,7 @@ sudo usermod -aG docker [username]
 1. **서버 재접속**
 - 재접속 안하고 docker 명령어를 사용했을 때 생기는 오류 캡쳐해서 넣기
 
-## 3. Jenkins Master 설치 및 설정
+### 3. Jenkins Master 설치 및 설정
 
 1. Docker Hub에서 jenkins 이미지 pull
 
@@ -49,13 +49,9 @@ $ docker run -d -v jenkins_home:/var/jenkins_home -p 8080:8080 -p 50000:50000 --
    docker logs jenkins-server
    ```
 
- 
-
 ![c5792252539aee58d325e71c9fa9d999e3266fdf.png](README_assets/ac9fba9f151902ae718e4d0c69be706049049b0a.png)
 
 2. `[메인 EC2 도메인 or IP]:8080/` 에 접속하여 초기 비밀번호 붙여넣기
-
-   
 
 ![fb1ca6ab0b0dc62d6dcdaa17c9a25513899b9149.png](README_assets/19dcf933d97135ed83572fb0dd29676769ced808.png)
 
@@ -72,3 +68,37 @@ $ docker run -d -v jenkins_home:/var/jenkins_home -p 8080:8080 -p 50000:50000 --
 ![5c09fcad7150a33be6a048e4a2e724e27f6a953a.png](README_assets/db124486904591ff6520c2779b45e11b23067762.png)
 
 ![de5861ca90dd2d0c4ab7d14e5ba77084cd8a0894.png](README_assets/5333b4ee03834c86187cac1d7db1b1d0a52f7bcb.png)
+
+## Ansible Server 설치
+
+### 1. Docker Container 생성
+
+```jsx
+docker run --privileged -itd --name ansible-server -p 20022:22 -p 8081:8080 -e container=docker -v /sys/fs/cgroup:/sys/fs/cgroup ubuntu:20.04 /bin/bash
+```
+
+### 2. Ansible-Server 접속
+
+```jsx
+docker exec -it ansible-server bash
+```
+
+### 3. Ansible 설치
+
+```
+apt update
+apt install software-properties-common
+```
+
+- 도시 설정
+
+![Untitled.png](README_assets/7d147e9ed999df39a9d22f20750e318a8b348272.png)
+
+![Untitled 1.png](README_assets/3d4a6ad052310f9f79491ecc53fac095f2c25244.png)
+
+```jsx
+add-apt-repository --yes --update ppa:ansible/ansible
+apt install ansible
+```
+
+![Untitled 2.png](README_assets/7c7c3f888ea59db2d322d32e8c79589d6dc8db4a.png)
