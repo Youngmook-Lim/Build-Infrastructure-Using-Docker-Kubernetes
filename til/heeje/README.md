@@ -26,6 +26,7 @@ sudo usermod -aG docker [username]
 ```
 
 1. **서버 재접속**
+
 - 재접속 안하고 docker 명령어를 사용했을 때 생기는 오류 캡쳐해서 넣기
 
 ### 3. Jenkins Master 설치 및 설정
@@ -43,8 +44,9 @@ $ docker run -d -v jenkins_home:/var/jenkins_home -p 8080:8080 -p 50000:50000 --
 ```
 
 - docker ps로 Container 구동 확인
+
 1. 로그 접근 후 초기 비밀번호 복사
-   
+
    ```jsx
    docker logs jenkins-server
    ```
@@ -56,7 +58,7 @@ $ docker run -d -v jenkins_home:/var/jenkins_home -p 8080:8080 -p 50000:50000 --
 ![fb1ca6ab0b0dc62d6dcdaa17c9a25513899b9149.png](README_assets/19dcf933d97135ed83572fb0dd29676769ced808.png)
 
 3. install 버튼 클릭
-   
+
    - 나중에 캡쳐 사진 가져오기
 
 4. 계정 생성
@@ -102,3 +104,28 @@ apt install ansible
 ```
 
 ![Untitled 2.png](README_assets/7c7c3f888ea59db2d322d32e8c79589d6dc8db4a.png)
+
+## Host 파일 생성
+
+### 1. vim 설치
+
+```jsx
+apt-get install vim
+```
+
+![Untitled 2.png](README_assets/7c7c3f888ea59db2d322d32e8c79589d6dc8db4a.png)
+
+### 2. Inventory 작성
+
+1. `sudo vi /etc/ansible/hosts`
+2. 다음과 같이 수정
+
+```
+[k8s-workers]
+(빌드 서버1 IP)
+(빌드 서버2 IP)
+(빌드 서버3 IP)
+
+[k8s-master]
+(k8s 서버 IP)
+```
