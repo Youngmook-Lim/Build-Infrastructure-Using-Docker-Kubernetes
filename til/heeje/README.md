@@ -129,3 +129,66 @@ apt-get install vim
 [k8s-master]
 (k8s 서버 IP)
 ```
+
+## SSH 연결
+
+### 1. K8s Master, Build Server에 Password 생성(자동화 생각해보기)
+
+- K8s Master Server에 접속
+- /etc/ssh/sshd_config 파일 수정(PasswordAuthentication yes)
+
+```jsx
+sudo vi /etc/ssh/sshd_config
+```
+
+![Untitled.png](README_assets/96be1d47ecaab63a8aadec4fe2b0139d78d910d6.png)
+
+- root 계정 접속
+
+```jsx
+sudo su
+```
+
+- `ubuntu` 사용자의 비밀번호 변경
+
+```jsx
+passwd ubuntu
+```
+
+![Untitled 1.png](README_assets/073a0b9321e4d1f822012a145e6714bac7422182.png)
+
+- `ubuntu` 사용자로 돌아와 ssh 재시작
+
+```
+# return to user "ubuntu"
+exit
+
+# restart ssh
+sudo systemctl restart ssh
+```
+
+- 모든 빌드 서버에 대하여 위 과정 실행
+
+### 2. SSH key 생성 (자동화 생각해보기)
+
+- ansible-server에서 `ssh-keygen` 입력
+- Enter 3번 입력
+
+![Untitled 2.png](README_assets/29712fb3f9d1ca07c1dc318ff487f1f89b64e4e6.png)
+
+### 3. K8s Master, Build Server에 SSH key 복사
+
+- ansible-server에서 다음과 같이 입력(SSH key를 해당 서버에 복사)
+
+```
+# copy the SSH key to the server
+ssh-copy-id -i ~/.ssh/id_rsa.pub ubuntu@[k8s master 또는 빌드 서버 IP]
+```
+
+- yes 입력 후 해당 빌드 서버에 저장해둔 비밀번호 입력
+
+![Untitled 3.png](README_assets/ef454e8b2bb498cd668a8332c9d17eff59d44692.png)
+
+![Untitled 4.png](README_assets/fce2b712f58c9385b76672fd2f99169445642971.png)
+
+- 나머지 서버에도 위 과정 반복
