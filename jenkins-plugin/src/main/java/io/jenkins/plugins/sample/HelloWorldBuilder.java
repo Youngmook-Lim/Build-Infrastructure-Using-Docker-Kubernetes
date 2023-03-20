@@ -30,13 +30,15 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     private final String gitUrl;
     private final String language;
     private final String buildEnv;
+    private final String branch;
 
     @DataBoundConstructor
-    public HelloWorldBuilder(String gitUrl, String name, String language, String buildEnv) {
+    public HelloWorldBuilder(String gitUrl, String name, String language, String buildEnv, String branch) {
         this.name = name;
         this.gitUrl = gitUrl;
         this.language = language;
         this.buildEnv = buildEnv;
+        this.branch = branch;
     }
 
     public String getName() {
@@ -55,6 +57,10 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         return buildEnv;
     }
 
+    public String getBranch() {
+        return branch;
+    }
+
     public String generateScript() {
         String jenkinsPipeline = "pipeline {\n";
         jenkinsPipeline += "  agent any\n";
@@ -62,6 +68,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         jenkinsPipeline += "    string(name: 'gitUrl', defaultValue: '" + gitUrl + "', description: 'Git URL')\n";
         jenkinsPipeline += "    string(name: 'buildEnv', defaultValue: '" + buildEnv + "', description: 'Build environment')\n";
         jenkinsPipeline += "    string(name: 'language', defaultValue: '" + language + "', description: 'Programming language')\n";
+        jenkinsPipeline += "    string(name: 'language', defaultValue: '" + branch + "', description: 'Programming language')\n";
         jenkinsPipeline += "  }\n";
         jenkinsPipeline += "  stages {\n";
         jenkinsPipeline += "    stage('Print Git URL') {\n";
@@ -152,6 +159,12 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingName());
             if (value.length() < 4)
                 return FormValidation.warning(Messages.HelloWorldBuilder_DescriptorImpl_warnings_tooShort());
+            return FormValidation.ok();
+        }
+
+        public FormValidation doCheckBranch(@QueryParameter String value) throws IOException, ServletException {
+            if(value.length() == 0) return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingBranch());
+
             return FormValidation.ok();
         }
 
