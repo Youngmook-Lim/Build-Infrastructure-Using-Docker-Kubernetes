@@ -93,7 +93,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
     @Override
     public void perform(Run<?, ?> run, FilePath workspace, EnvVars env, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
-////        String pipelineScript = "pipeline { agent any; stages { stage('Build') { steps { sh 'echo \"Hello, Jenkins!\"' } } } }";
+//        String pipelineScript = "pipeline { agent any; stages { stage('Build') { steps { sh 'echo \"Hello, Jenkins!\"' } } } }";
 //        Jenkins jenkinsInstance = Jenkins.get();
 //        // 파이프라인 작업 생성
 //        WorkflowJob job = new WorkflowJob(jenkinsInstance, name);
@@ -177,7 +177,5 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         public String getDisplayName() {
             return Messages.HelloWorldBuilder_DescriptorImpl_DisplayName();
         }
-
     }
-
 }
