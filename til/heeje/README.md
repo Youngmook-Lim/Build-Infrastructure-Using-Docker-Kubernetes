@@ -192,3 +192,84 @@ ssh-copy-id -i ~/.ssh/id_rsa.pub ubuntu@[k8s master 또는 빌드 서버 IP]
 ![Untitled 4.png](README_assets/fce2b712f58c9385b76672fd2f99169445642971.png)
 
 - 나머지 서버에도 위 과정 반복
+
+## Docker 설치
+
+### 1. Playbook, Shell script를 저장할 폴더 생성
+
+```
+mkdir /home/ansible-playbook
+mkdir /home/init-scripts
+```
+
+### 2. Docker 설치를 위한 Shell script 파일 생성
+
+```
+vi /home/init-scripts/install-docker.sh
+```
+
+- 아래 내용 입력 및 저장
+
+```
+# remove docker if exists
+sudo apt-get remove docker docker-engine docker.io containerd runc
+
+# update apt packages
+sudo apt-get update
+sudo apt-get -y install \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release
+
+# add docker's GPG key
+sudo rm -r /etc/apt/keyrings
+sudo mkdir -m 0755 -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+     $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# install docker engine
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# add docker group
+sudo usermod -aG docker $USER
+
+# resetting the permissions
+sudo chown -R $USER:$USER /var/run/docker.sock
+sudo chmod -R 660 /var/run/docker.sock
+```
+
+### 3. Docker 설치를 위한 Ansible-Playbook 파일 생성
+
+```
+vi /home/ansible-playbooks/playbook-install-docker.yml
+```
+
+- 아래 내용 입력 및 저장
+
+```
+- name: Install Docker
+  hosts: all
+  remote_user: ubuntu
+  tasks:
+    - name: Copy Docker install shell script
+      copy:
+        src=/home/init-scripts/install-docker.sh
+        dest=/home/ubuntu/scripts/
+        mode=0777
+
+    - name: Execute script
+      command: sh /home/ubuntu/scripts/install-docker.sh
+      async: 3600
+      poll: 5
+```
+
+### 4. Docker 설치를 위한 Ansible Playbook 실행
+
+```
+ansible-playbook /home/ansible-playbooks/playbook-install-docker.yml# resetting the permissions
+```
