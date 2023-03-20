@@ -11,7 +11,7 @@
     <artifactId>last-plugin</artifactId>
     <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
-    <name>TODO Plugin</name>
+    <name>DaeGuOps Pipeline Generator Plugin</name>
     <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
     <licenses>
         <license>
