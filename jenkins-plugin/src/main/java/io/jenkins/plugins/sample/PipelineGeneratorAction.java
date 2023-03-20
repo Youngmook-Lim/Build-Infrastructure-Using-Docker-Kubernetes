@@ -4,7 +4,7 @@ import hudson.Extension;
 import hudson.model.RootAction;
 
 @Extension
-public class MyRootAction implements RootAction {
+public class PipelineGeneratorAction implements RootAction {
 
     @Override
     public String getIconFileName() {
@@ -13,11 +13,11 @@ public class MyRootAction implements RootAction {
 
     @Override
     public String getDisplayName() {
-        return "TEST sidebar new menu";
+        return "Pipeline Generator";
     }
 
     @Override
     public String getUrlName() {
-        return "https://www.naver.com/";
+        return "www.google.com";
     }
 }

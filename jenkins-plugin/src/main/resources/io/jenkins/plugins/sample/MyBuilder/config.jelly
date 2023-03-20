@@ -1,7 +1,0 @@
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-    <f:entry title="Time" field="time">
-<!--        title은 빌드스텝에서 나타나질 이름 같은거고 field는 databinding 되서 java에 보내질 변수명-->
-        <f:textbox/>
-    </f:entry>
-</j:jelly>
-
