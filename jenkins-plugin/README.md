@@ -1,4 +1,4 @@
-# jenkins-plugin
+# last-plugin
 
 ## Introduction
 

@@ -8,7 +8,7 @@
         <relativePath />
     </parent>
     <groupId>io.jenkins.plugins</groupId>
-    <artifactId>jenkins-plugin</artifactId>
+    <artifactId>last-plugin</artifactId>
     <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
     <name>TODO Plugin</name>
@@ -64,16 +64,6 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-durable-task-step</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>git-client</artifactId>
-            <version>2.5.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>git</artifactId>
-            <version>3.6.0</version>
         </dependency>
     </dependencies>
 

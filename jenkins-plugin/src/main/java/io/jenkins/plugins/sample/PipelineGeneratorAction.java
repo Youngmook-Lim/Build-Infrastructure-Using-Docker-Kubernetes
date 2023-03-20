@@ -18,6 +18,6 @@ public class PipelineGeneratorAction implements RootAction {
 
     @Override
     public String getUrlName() {
-        return "www.google.com";
+        return "http://localhost:8080/jenkins/job/new%20pl%20generator/configure";
     }
 }
