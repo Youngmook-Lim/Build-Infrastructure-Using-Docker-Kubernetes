@@ -1,0 +1,159 @@
+pipeline {
+    agent {
+        label 'dock'
+    }
+
+    environment {
+        SONAR_HOST = 'http://192.168.13.232:9001'
+        SONAR_LOGIN='admin'
+        SONAR_PASSWORD='admin'
+        TOKEN=''
+    }
+
+    tools {
+        maven 'maven'
+        gradle 'gradle'
+    }
+
+    stages {
+        stage('Pull from git') {
+            steps {
+                sh 'rm -rf repo'
+
+                sh 'mkdir repo'
+
+                dir('repo') {
+                    git branch: 'master', url: 'https://github.com/SonarSource/sonar-scanning-examples.git'
+                    sh 'ls -al' // Example command to verify we are in the right directory
+                    sh 'pwd'
+                }
+
+                sh 'pwd'
+
+            }
+        }
+
+        stage('Launch Sonarqube') {
+            steps {
+                sh 'docker run --rm -d --name sonarqube2 -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p 9001:9000 sonarqube:latest'
+                script {
+                    waitForSonarQube("${SONAR_HOST}", 300)
+                }
+            }
+        }
+
+        stage('Get Sonarqube token') {
+            steps {
+                sh '''
+                    USER_LOGIN=admin
+                    TOKEN_NAME="My Jenkins Token"
+                    MAX_RETRIES=10
+                    RETRY_INTERVAL=10
+
+                    for i in $(seq 1 $MAX_RETRIES); do
+                        echo "Attempt #$i to get token..."
+                        TOKEN=$(curl -s -u "${SONAR_LOGIN}:${SONAR_PASSWORD}" -X POST "${SONAR_HOST}/api/user_tokens/generate" \
+                            -d "name=${TOKEN_NAME}" \
+                            -d "login=${USER_LOGIN}" \
+                            | sed -n 's/.*\"token\":\"\\([^\"]*\\)\".*/\\1/p')
+                        if [ -n "$TOKEN" ]; then
+                            echo "Token: ${TOKEN}"
+                            break
+                        else
+                            echo "Token not received, waiting for $RETRY_INTERVAL seconds before retrying..."
+                            sleep $RETRY_INTERVAL
+                        fi
+                    done
+
+                    if [ -z "$TOKEN" ]; then
+                        echo "Failed to get token after $MAX_RETRIES attempts."
+                        exit 1
+                    fi
+
+                    echo "Token: ${TOKEN}"
+                '''
+            }
+        }
+
+        stage('Add Sonarqube server to Jenkins') {
+            steps {
+                script {
+                    echo "${TOKEN}"
+                    def token = "${TOKEN}"
+                    echo token
+                    def sonarQubeUrl = "${SONAR_HOST}"
+                    def sonarQubeName = "SonarQube2"
+                    def groovyScript = '''
+                        import hudson.plugins.sonar.SonarGlobalConfiguration
+                        import hudson.plugins.sonar.SonarInstallation
+                        import jenkins.model.GlobalConfiguration
+                        import jenkins.model.Jenkins
+
+                        String sonarQubeName = "${sonarQubeName}"
+                        String sonarQubeUrl = "${sonarQubeUrl}"
+                        String token = "${token}"
+                        System.out.println(token + " " + sonarQubeUrl)
+
+                        Jenkins jenkins = Jenkins.getInstanceOrNull()
+                        SonarGlobalConfiguration sonarGlobalConfig = GlobalConfiguration.all().get(SonarGlobalConfiguration.class)
+
+                        SonarInstallation newInstallation = new SonarInstallation(sonarQubeName, sonarQubeUrl, null, null, null, null, null, null, null, null, token)
+
+                        SonarInstallation[] currentInstallations = sonarGlobalConfig.getInstallations()
+                        SonarInstallation[] newInstallations = currentInstallations + newInstallation
+
+                        sonarGlobalConfig.setInstallations(newInstallations as SonarInstallation[])
+                        sonarGlobalConfig.save()
+                    '''
+                    def binding = [sonarQubeName: sonarQubeName, sonarQubeUrl: sonarQubeUrl, token: token]
+                    def shell = new GroovyShell(binding)
+                    shell.evaluate(groovyScript)
+                }
+            }
+        }
+
+
+
+        stage('Sonarqube analysis') {
+            steps {
+                withSonarQubeEnv("SonarQube Server") {
+                    sh 'pwd'
+                    dir('repo/sonarqube-scanner-gradle/gradle-basic') {
+                        sh 'chmod +x gradlew'
+                        sh './gradlew sonarqube'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "always"
+            sh 'docker stop sonarqube2'
+        }
+        failure {
+            echo "You failed :("
+        }
+    }
+}
+
+def waitForSonarQube(sonarQubeUrl, timeout) {
+    def running = false
+    def remainingTime = timeout
+
+    while (remainingTime > 0 && !running) {
+        echo "Attempting to connect to SonarQube at ${sonarQubeUrl}"
+        try {
+            sh(script: "curl --max-time 10 --retry 0 --retry-max-time 10 --retry-connrefused --fail --silent ${sonarQubeUrl}/api/system/status", returnStdout: true)
+            running = true
+        } catch (Exception e) {
+            remainingTime -= 10
+            sleep(10)
+        }
+    }
+
+    if (!running) {
+        error("SonarQube did not start within the expected time.")
+    }
+}
