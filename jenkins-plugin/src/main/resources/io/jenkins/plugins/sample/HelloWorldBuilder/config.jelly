@@ -7,13 +7,18 @@
         <f:textbox />
     </f:entry>
     <f:entry title="${%Language}" field="language">
-        <f:textbox />
+        <f:dropdownList title="Select Project Language" name="langSelect">
+            <f:dropdownListBlock title="Java" value="Java" />
+        </f:dropdownList>
     </f:entry>
     <f:entry title="${%Build Environment}" field="buildEnv">
-        <f:textbox />
+        <f:dropdownList title="Select Project Build Environment" name="envSelect">
+            <f:dropdownListBlock title="Maven" value="maven" />
+            <f:dropdownListBlock title="Gradle" value="gradle" />
+        </f:dropdownList>
     </f:entry>
 
-    <script>
-        const nameBox = document.getElementsByClassName("nameField");
-    </script>
+<!--    <script>-->
+<!--        const nameBox = document.getElementsByClassName("nameField");-->
+<!--    </script>-->
 </j:jelly>

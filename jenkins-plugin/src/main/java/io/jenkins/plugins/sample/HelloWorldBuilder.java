@@ -129,15 +129,29 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
 
-        public FormValidation doCheckName(@QueryParameter String value, @QueryParameter boolean useFrench)
-                throws IOException, ServletException {
+        public FormValidation doCheckGitUrl(@QueryParameter String gitUrl) throws IOException, ServletException {
+            if (gitUrl.length() == 0) {
+                return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingGitURL());
+            }
+            return FormValidation.ok();
+        }
+        public FormValidation doCheckBuildEnv(@QueryParameter String buildEnv)throws IOException, ServletException {
+            if (buildEnv.length() == 0) {
+                return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingBuildEnv());
+            }
+            return FormValidation.ok();
+        }
+        public FormValidation doCheckLanguage(@QueryParameter String language)throws IOException, ServletException {
+            if (language.length() == 0) {
+                return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingLanguage());
+            }
+            return FormValidation.ok();
+        }
+        public FormValidation doCheckName(@QueryParameter String value) throws IOException, ServletException {
             if (value.length() == 0)
                 return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingName());
             if (value.length() < 4)
                 return FormValidation.warning(Messages.HelloWorldBuilder_DescriptorImpl_warnings_tooShort());
-            if (!useFrench && value.matches(".*[éáàç].*")) {
-                return FormValidation.warning(Messages.HelloWorldBuilder_DescriptorImpl_warnings_reallyFrench());
-            }
             return FormValidation.ok();
         }
 
