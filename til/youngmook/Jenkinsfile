@@ -7,7 +7,6 @@ pipeline {
         SONAR_HOST = 'http://192.168.13.232:9001'
         SONAR_LOGIN='admin'
         SONAR_PASSWORD='admin'
-        TOKEN=''
     }
 
     tools {
@@ -19,17 +18,10 @@ pipeline {
         stage('Pull from git') {
             steps {
                 sh 'rm -rf repo'
-
                 sh 'mkdir repo'
-
                 dir('repo') {
                     git branch: 'master', url: 'https://github.com/SonarSource/sonar-scanning-examples.git'
-                    sh 'ls -al' // Example command to verify we are in the right directory
-                    sh 'pwd'
                 }
-
-                sh 'pwd'
-
             }
         }
 
@@ -44,74 +36,95 @@ pipeline {
 
         stage('Get Sonarqube token') {
             steps {
-                sh '''
-                    USER_LOGIN=admin
-                    TOKEN_NAME="My Jenkins Token"
-                    MAX_RETRIES=10
-                    RETRY_INTERVAL=10
-
-                    for i in $(seq 1 $MAX_RETRIES); do
-                        echo "Attempt #$i to get token..."
-                        TOKEN=$(curl -s -u "${SONAR_LOGIN}:${SONAR_PASSWORD}" -X POST "${SONAR_HOST}/api/user_tokens/generate" \
-                            -d "name=${TOKEN_NAME}" \
-                            -d "login=${USER_LOGIN}" \
-                            | sed -n 's/.*\"token\":\"\\([^\"]*\\)\".*/\\1/p')
-                        if [ -n "$TOKEN" ]; then
-                            echo "Token: ${TOKEN}"
-                            break
-                        else
-                            echo "Token not received, waiting for $RETRY_INTERVAL seconds before retrying..."
-                            sleep $RETRY_INTERVAL
-                        fi
-                    done
-
-                    if [ -z "$TOKEN" ]; then
-                        echo "Failed to get token after $MAX_RETRIES attempts."
-                        exit 1
-                    fi
-
-                    echo "Token: ${TOKEN}"
-                '''
-            }
-        }
-
-        stage('Add Sonarqube server to Jenkins') {
-            steps {
                 script {
-                    echo "${TOKEN}"
-                    def token = "${TOKEN}"
-                    echo token
-                    def sonarQubeUrl = "${SONAR_HOST}"
-                    def sonarQubeName = "SonarQube2"
-                    def groovyScript = '''
-                        import hudson.plugins.sonar.SonarGlobalConfiguration
-                        import hudson.plugins.sonar.SonarInstallation
-                        import jenkins.model.GlobalConfiguration
-                        import jenkins.model.Jenkins
+                    def tokenOutput = sh(script: '''
+                        USER_LOGIN=admin
+                        TOKEN_NAME="My Jenkins Token"
+                        MAX_RETRIES=12
+                        RETRY_INTERVAL=5
 
-                        String sonarQubeName = "${sonarQubeName}"
-                        String sonarQubeUrl = "${sonarQubeUrl}"
-                        String token = "${token}"
-                        System.out.println(token + " " + sonarQubeUrl)
+                        for i in $(seq 1 $MAX_RETRIES); do
+                            echo "Attempt #$i to get token..."
+                            TOKEN=$(curl -s -u "${SONAR_LOGIN}:${SONAR_PASSWORD}" -X POST "${SONAR_HOST}/api/user_tokens/generate" \
+                                -d "name=${TOKEN_NAME}" \
+                                -d "login=${USER_LOGIN}" \
+                                | sed -n 's/.*\"token\":\"\\([^\"]*\\)\".*/\\1/p')
+                            if [ -n "$TOKEN" ]; then
+                                echo "Token: ${TOKEN}"
+                                break
+                            else
+                                echo "Token not received, waiting for $RETRY_INTERVAL seconds before retrying..."
+                                sleep $RETRY_INTERVAL
+                            fi
+                        done
 
-                        Jenkins jenkins = Jenkins.getInstanceOrNull()
-                        SonarGlobalConfiguration sonarGlobalConfig = GlobalConfiguration.all().get(SonarGlobalConfiguration.class)
+                        if [ -z "$TOKEN" ]; then
+                            echo "Failed to get token after $MAX_RETRIES attempts."
+                            exit 1
+                        fi
 
-                        SonarInstallation newInstallation = new SonarInstallation(sonarQubeName, sonarQubeUrl, null, null, null, null, null, null, null, null, token)
+                        echo "Token: ${TOKEN}"
+                    ''', returnStdout: true).trim()
 
-                        SonarInstallation[] currentInstallations = sonarGlobalConfig.getInstallations()
-                        SonarInstallation[] newInstallations = currentInstallations + newInstallation
-
-                        sonarGlobalConfig.setInstallations(newInstallations as SonarInstallation[])
-                        sonarGlobalConfig.save()
-                    '''
-                    def binding = [sonarQubeName: sonarQubeName, sonarQubeUrl: sonarQubeUrl, token: token]
-                    def shell = new GroovyShell(binding)
-                    shell.evaluate(groovyScript)
+                    env.TOKEN = tokenOutput.substring(tokenOutput.lastIndexOf("Token: ") + 7)
+                    echo "Token: ${TOKEN}"
                 }
             }
         }
 
+        stage('Configure SonarQube server in Jenkins') {
+            steps {
+                script {
+                    // Set Jenkins URL and CLI JAR location
+                    def jenkinsUrl = "http://192.168.6.9:8080"
+
+                    // Set Jenkins user and API token
+                    def jenkinsUser = "admin"
+                    def jenkinsApiToken = "1179474944b621f91eaa44898c84a0207e"
+
+                    // Prepare the Groovy script to create or update the SonarQube server configuration
+                    def groovyScript = '''
+                    import jenkins.model.*
+                    import hudson.plugins.sonar.*
+                    import hudson.plugins.sonar.model.*
+
+                    String sonarQubeName = "SonarQube Server"
+                    String sonarQubeUrl = "${SONAR_HOST}"
+                    String token = "${TOKEN}"
+
+                    Jenkins jenkins = Jenkins.getInstanceOrNull()
+                    SonarGlobalConfiguration sonarGlobalConfiguration = jenkins.getDescriptorByType(SonarGlobalConfiguration.class)
+
+                    List<SonarInstallation> installations = sonarGlobalConfiguration.getInstallations().toList()
+
+                    // Find existing SonarQube configuration or create a new one
+                    SonarInstallation sonarInstallation = installations.find { it.getName() == sonarQubeName }
+                    if (sonarInstallation == null) {
+                        sonarInstallation = new SonarInstallation(sonarQubeName, sonarQubeUrl, token, "", "", "", "")
+                        installations.add(sonarInstallation)
+                    } else {
+                        installations.remove(sonarInstallation)
+                        sonarInstallation = new SonarInstallation(sonarQubeName, sonarQubeUrl, token, sonarInstallation.getMojoVersion(), sonarInstallation.getProperties(), sonarInstallation.getTriggers(), sonarInstallation.getAdditionalAnalysisProperties())
+                        installations.add(sonarInstallation)
+                    }
+
+                    // Update the SonarQube server configuration in Jenkins
+                    sonarGlobalConfiguration.setInstallations(installations.toArray(new SonarInstallation[0]))
+                    sonarGlobalConfiguration.save()
+                    println "SonarQube server '${sonarQubeName}' configured in Jenkins."
+                '''
+
+                // Save the Groovy script to a file
+                writeFile file: 'configure_sonarqube.groovy', text: groovyScript
+
+                // Download the Jenkins CLI JAR file
+                sh "curl -sSL -o jenkins-cli.jar ${jenkinsUrl}/jnlpJars/jenkins-cli.jar"
+
+                // Execute the Groovy script using the Jenkins CLI
+                sh "java -jar jenkins-cli.jar -auth ${jenkinsUser}:${jenkinsApiToken} -s ${jenkinsUrl} groovy = < configure_sonarqube.groovy"
+                }
+            }
+        }
 
 
         stage('Sonarqube analysis') {
