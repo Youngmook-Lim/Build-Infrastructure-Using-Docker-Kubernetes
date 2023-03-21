@@ -2,13 +2,14 @@ package io.jenkins.plugins.sample;
 
 import hudson.Extension;
 import hudson.model.RootAction;
+import jenkins.model.Jenkins;
 
 @Extension
 public class PipelineGeneratorAction implements RootAction {
 
     @Override
     public String getIconFileName() {
-        return "clipboard.png";
+        return "plugin.png";
     }
 
     @Override
@@ -18,6 +19,10 @@ public class PipelineGeneratorAction implements RootAction {
 
     @Override
     public String getUrlName() {
-        return "http://localhost:8080/jenkins/job/new%20pl%20generator/configure";
+        return "job/"+getCurrentUserId()+"/job/pipelinegenerator/configure";
+    }
+
+    private String getCurrentUserId() {
+        return Jenkins.getAuthentication().getName();
     }
 }
