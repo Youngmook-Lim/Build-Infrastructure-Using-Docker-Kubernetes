@@ -4,19 +4,18 @@ import hudson.Launcher;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
-import hudson.model.Cause;
 import hudson.util.FormValidation;
 import hudson.model.AbstractProject;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.Builder;
 import hudson.tasks.BuildStepDescriptor;
-import hudson.util.StreamTaskListener;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import com.cloudbees.hudson.plugins.folder.Folder;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
@@ -91,44 +90,65 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         return jenkinsPipeline;
     }
 
+    private Folder getOrCreateUserFolder(String username) throws IOException {
+        Jenkins jenkinsInstance = Jenkins.get();
+        TopLevelItem folderItem = jenkinsInstance.getItem(username);
+
+        if (folderItem instanceof Folder) {
+            return (Folder) folderItem;
+        } else if (folderItem == null) {
+            // CloudBees Folders Plugin을 사용하여 사용자 이름에 해당하는 폴더를 생성합니다.
+            Folder folder = new Folder(jenkinsInstance, username);
+            jenkinsInstance.add(folder, username);
+            folder.save();
+            return folder;
+        } else {
+            throw new IOException("이름이 " + username + "인 폴더를 생성할 수 없습니다. 해당 이름을 가진 다른 항목이 이미 존재합니다.");
+        }
+    }
+
+    private String getCurrentUserId() {
+        return Jenkins.getAuthentication().getName();
+    }
+
     @Override
     public void perform(Run<?, ?> run, FilePath workspace, EnvVars env, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
-//        String pipelineScript = "pipeline { agent any; stages { stage('Build') { steps { sh 'echo \"Hello, Jenkins!\"' } } } }";
-//        Jenkins jenkinsInstance = Jenkins.get();
-//        // 파이프라인 작업 생성
-//        WorkflowJob job = new WorkflowJob(jenkinsInstance, name);
-//
-//        // 파이프라인 정의 적용
-//        job.setDefinition(new CpsFlowDefinition(generateScript(), true));
-//        // 작업 저장 (추가)
-//        job.save();
-//        // 파이프라인 작업 예약
-//        try {
-//            job.scheduleBuild2(0).waitForStart();
-//        } catch (Exception e) {
-//        }
+
 
         Jenkins jenkinsInstance = Jenkins.get();
 
+        // 로그인한 사용자 이름을 가져옵니다.
+        String currentUsername = getCurrentUserId();
+
+        // 사용자 이름에 해당하는 폴더를 가져오거나 생성합니다.
+        Folder userFolder;
+        try {
+            userFolder = getOrCreateUserFolder(currentUsername);
+        } catch (IOException e) {
+            e.printStackTrace(listener.error("사용자 폴더를 가져오거나 생성하는데 실패했습니다."));
+            return;
+        }
+
         // Check if the job already exists
-        if (jenkinsInstance.getItem(name) != null) {
+        TopLevelItem jobItem = userFolder.getItem(name);
+        if (jobItem != null) {
             listener.getLogger().println("Job with this name already exists: " + name);
             return;
         }
 
         // Create a new Pipeline Job
         try {
-            TopLevelItem item = jenkinsInstance.createProject(WorkflowJob.class, name);
+            TopLevelItem item = userFolder.createProject(WorkflowJob.class, name);
             if (item instanceof WorkflowJob) {
                 WorkflowJob job = (WorkflowJob) item;
                 job.setDefinition(new CpsFlowDefinition(generateScript(), true));
                 job.save();
                 job.scheduleBuild2(0).waitForStart();
             } else {
-                listener.getLogger().println("Failed to create a new pipeline job.");
+                listener.getLogger().println("새 파이프라인 작업을 생성하는데 실패했습니다.");
             }
         } catch (Exception e) {
-            e.printStackTrace(listener.error("Failed to create a new pipeline job."));
+            e.printStackTrace(listener.error("새 파이프라인 작업을 생성하는데 실패했습니다."));
         }
     }
 
