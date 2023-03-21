@@ -72,47 +72,16 @@ pipeline {
             }
         }
 
-        stage('Configure SonarQube server in Jenkins') {
-            steps {
-                script {
-                   // Replace '<your-jenkins-url>' with your actual Jenkins URL
-                    JENKINS_API_URL = "http://192.168.6.9:8080"
-                    JENKINS_CREDS_URL = "${JENKINS_API_URL}/sonarqube/credentials/store/system/domain/_/createCredentials"
-
-                    // Replace '<your-jenkins-username>' and '<your-jenkins-password>' with your actual Jenkins username and password
-                    JENKINS_AUTH = "admin:admin"
-
-                    // Get Jenkins crumb
-                    def jenkinsCrumb = sh(script: "curl -u ${JENKINS_AUTH} '${JENKINS_API_URL}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)'", returnStdout: true).trim()
-
-                    // Create the JSON payload for credentials
-                    JENKINS_CREDS_PAYLOAD = '''{
-                        "": "0",
-                        "credentials": {
-                            "scope": "GLOBAL",
-                            "id": "sonarqube_token",
-                            "username": "admin",
-                            "password": "${TOKEN}",
-                            "description": "SonarQube token",
-                            "$class": "com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl"
-                        }
-                    }'''
-
-                    // Create the credentials with the crumb included as a header
-                    sh "curl -X POST -u ${JENKINS_AUTH} --header 'Content-Type: application/json' --header '${jenkinsCrumb}' -d '${JENKINS_CREDS_PAYLOAD}' ${JENKINS_CREDS_URL}"
-                }
-            }
-        }
-
-
         stage('Sonarqube analysis') {
             steps {
-                withSonarQubeEnv("SonarQube Server") {
-                    sh 'pwd'
-                    dir('repo/sonarqube-scanner-gradle/gradle-basic') {
-                        sh 'chmod +x gradlew'
-                        sh './gradlew sonarqube'
-                    }
+                script {
+                    sh """
+                        cd repo/sonarqube-scanner-gradle/gradle-basic
+                        ./gradlew sonarqube \
+                            -Dsonar.projectKey=my_project \
+                            -Dsonar.host.url=${SONAR_HOST} \
+                            -Dsonar.login=${TOKEN}
+                    """
                 }
             }
         }
@@ -120,7 +89,6 @@ pipeline {
 
     post {
         always {
-            echo "always"
             sh 'docker stop sonarqube2'
         }
         failure {
