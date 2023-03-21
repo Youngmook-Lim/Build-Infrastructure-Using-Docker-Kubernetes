@@ -5,8 +5,8 @@ pipeline {
 
     environment {
         SONAR_HOST = 'http://192.168.13.232:9001'
-        SONAR_LOGIN='admin'
-        SONAR_PASSWORD='admin'
+        SONAR_LOGIN = 'admin'
+        SONAR_PASSWORD = 'admin'
     }
 
     tools {
@@ -75,53 +75,31 @@ pipeline {
         stage('Configure SonarQube server in Jenkins') {
             steps {
                 script {
-                    // Set Jenkins URL and CLI JAR location
-                    def jenkinsUrl = "http://192.168.6.9:8080"
+                   // Replace '<your-jenkins-url>' with your actual Jenkins URL
+                    JENKINS_API_URL = "http://192.168.6.9:8080"
+                    JENKINS_CREDS_URL = "${JENKINS_API_URL}/sonarqube/credentials/store/system/domain/_/createCredentials"
 
-                    // Set Jenkins user and API token
-                    def jenkinsUser = "admin"
-                    def jenkinsApiToken = "1179474944b621f91eaa44898c84a0207e"
+                    // Replace '<your-jenkins-username>' and '<your-jenkins-password>' with your actual Jenkins username and password
+                    JENKINS_AUTH = "admin:admin"
 
-                    // Prepare the Groovy script to create or update the SonarQube server configuration
-                    def groovyScript = '''
-                    import jenkins.model.*
-                    import hudson.plugins.sonar.*
-                    import hudson.plugins.sonar.model.*
+                    // Get Jenkins crumb
+                    def jenkinsCrumb = sh(script: "curl -u ${JENKINS_AUTH} '${JENKINS_API_URL}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)'", returnStdout: true).trim()
 
-                    String sonarQubeName = "SonarQube Server"
-                    String sonarQubeUrl = "${SONAR_HOST}"
-                    String token = "${TOKEN}"
+                    // Create the JSON payload for credentials
+                    JENKINS_CREDS_PAYLOAD = '''{
+                        "": "0",
+                        "credentials": {
+                            "scope": "GLOBAL",
+                            "id": "sonarqube_token",
+                            "username": "admin",
+                            "password": "${TOKEN}",
+                            "description": "SonarQube token",
+                            "$class": "com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl"
+                        }
+                    }'''
 
-                    Jenkins jenkins = Jenkins.getInstanceOrNull()
-                    SonarGlobalConfiguration sonarGlobalConfiguration = jenkins.getDescriptorByType(SonarGlobalConfiguration.class)
-
-                    List<SonarInstallation> installations = sonarGlobalConfiguration.getInstallations().toList()
-
-                    // Find existing SonarQube configuration or create a new one
-                    SonarInstallation sonarInstallation = installations.find { it.getName() == sonarQubeName }
-                    if (sonarInstallation == null) {
-                        sonarInstallation = new SonarInstallation(sonarQubeName, sonarQubeUrl, token, "", "", "", "")
-                        installations.add(sonarInstallation)
-                    } else {
-                        installations.remove(sonarInstallation)
-                        sonarInstallation = new SonarInstallation(sonarQubeName, sonarQubeUrl, token, sonarInstallation.getMojoVersion(), sonarInstallation.getProperties(), sonarInstallation.getTriggers(), sonarInstallation.getAdditionalAnalysisProperties())
-                        installations.add(sonarInstallation)
-                    }
-
-                    // Update the SonarQube server configuration in Jenkins
-                    sonarGlobalConfiguration.setInstallations(installations.toArray(new SonarInstallation[0]))
-                    sonarGlobalConfiguration.save()
-                    println "SonarQube server '${sonarQubeName}' configured in Jenkins."
-                '''
-
-                // Save the Groovy script to a file
-                writeFile file: 'configure_sonarqube.groovy', text: groovyScript
-
-                // Download the Jenkins CLI JAR file
-                sh "curl -sSL -o jenkins-cli.jar ${jenkinsUrl}/jnlpJars/jenkins-cli.jar"
-
-                // Execute the Groovy script using the Jenkins CLI
-                sh "java -jar jenkins-cli.jar -auth ${jenkinsUser}:${jenkinsApiToken} -s ${jenkinsUrl} groovy = < configure_sonarqube.groovy"
+                    // Create the credentials with the crumb included as a header
+                    sh "curl -X POST -u ${JENKINS_AUTH} --header 'Content-Type: application/json' --header '${jenkinsCrumb}' -d '${JENKINS_CREDS_PAYLOAD}' ${JENKINS_CREDS_URL}"
                 }
             }
         }
