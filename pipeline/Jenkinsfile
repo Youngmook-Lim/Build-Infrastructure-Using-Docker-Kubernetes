@@ -11,6 +11,8 @@ pipeline {
         SONAR_LOGIN = 'admin'
         SONAR_PASSWORD = 'admin'
         SONAR_PORT = 9000
+        JENKINS_PORT = 8080
+        AUTHENTICATION_ID = 'jenkins_api_token123'
     }
 
     // parameters {
@@ -22,19 +24,57 @@ pipeline {
     // }
 
     stages {
-        stage('Duplication check') {
-            agent {
-                label 'master'
-            }
-            steps {
-                echo '중복빌드 검사가 들어가야 할 스테이지 입니다.'
-                // if (중복일경우) {
-                //     echo "동일한 빌드 #${중복된 빌드번호} 빌드가 존재합니다."
-                //     archiveArtifacts artifacts: '중복된 빌드의 아티팩트 위치', followSymlinks: false
-                //     exit pipeline
-                // }
-            }
-        }
+        // stage('Duplication check') {
+        //     agent {
+        //         label 'master'
+        //     }
+        //     steps {
+        //         echo '중복빌드 검사가 들어가야 할 스테이지 입니다.'
+
+        //         script {
+        //             // Get the latest commit hash from the remote repository
+        //             def latestCommit = sh(script: "git ls-remote ${GIT_URL} HEAD | awk '{print \$1}'", returnStdout: true).trim()
+        //             echo "Latest commit hash: ${latestCommit}"
+
+        //             env.JENKINS_URL = "http://${sh(script:'docker exec jenkins-docker hostname -I', returnStdout: true).trim()}:${JENKINS_PORT}"
+        //             echo "JENKINS_URL: ${JENKINS_URL}"
+
+        //             def buildStatusUrl = "${JENKINS_URL}/job/${JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]"
+        //             echo buildStatusUrl
+
+        //             def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: AUTHENTICATION_ID, acceptType: 'APPLICATION_JSON')
+        //             def buildStatusJson = readJSON text: buildStatusResponse.content
+
+        //             def commitBuilt = false
+        //             for (build in buildStatusJson.allBuilds) {
+        //                 def branchBuildInfo = build.actions.find { it.buildsByBranchName }
+        //                 if (branchBuildInfo) {
+        //                     def commitInfo = branchBuildInfo.buildsByBranchName.values().find { it.revision.SHA1 == latestCommit }
+        //                     if (commitInfo && build.result == 'SUCCESS') {
+        //                         commitBuilt = true
+        //                         break
+        //                     }
+        //                 }
+        //             }
+
+        //             if (commitBuilt) {
+        //                 echo "Latest commit ${latestCommit} was built successfully. Stopping the build."
+        //                 currentBuild.result = 'ABORTED'
+        //                 error("Build was aborted because the latest commit ${latestCommit} has already been built successfully.")
+        //             } else {
+        //                 echo "Latest commit ${latestCommit} was not built or not built successfully. Continuing the build."
+        //             }
+        //         }
+
+
+        //         // if (중복일경우) {
+        //         //     echo "동일한 빌드 #${중복된 빌드번호} 빌드가 존재합니다."
+        //         //     archiveArtifacts artifacts: '중복된 빌드의 아티팩트 위치', followSymlinks: false
+        //         //     exit pipeline
+        //         // }
+        //     }
+        // }
+
         stage('Select agent') {
             agent {
                 label 'agent'
@@ -286,19 +326,23 @@ pipeline {
 
     post {
         always {
-            node("${buildAgent}") {
-                sh 'docker stop sonarqube'
-                cleanWs deleteDirs: true
-                // dir("${env.WORKSPACE}/..") {
-                //     sh 'find . -type d -name "pipeline-*_ws-cleanup_*" -exec rm -r {} \\;'
-                // }
-                withEnv(['USER=root']) {
-                    sh 'whoami'
-                    sh 'cd ..'
-                    sh 'pwd'
-                    sh "find . -type d -name 'pipeline-*_ws-cleanup_*' -exec rm -r {} \\;"
-                }
+          script {
+            if (buildAgent) {
+              node("${buildAgent}") {
+                  sh 'docker stop sonarqube'
+                  cleanWs deleteDirs: true
+                  // dir("${env.WORKSPACE}/..") {
+                  //     sh 'find . -type d -name "pipeline-*_ws-cleanup_*" -exec rm -r {} \\;'
+                  // }
+                  withEnv(['USER=root']) {
+                      sh 'whoami'
+                      sh 'cd ..'
+                      sh 'pwd'
+                      sh "find . -type d -name 'pipeline-*_ws-cleanup_*' -exec rm -r {} \\;"
+                  }
+              }
             }
+          }
         }
     }
 }
