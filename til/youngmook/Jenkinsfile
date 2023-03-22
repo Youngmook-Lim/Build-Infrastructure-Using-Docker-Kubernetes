@@ -1,28 +1,29 @@
 pipeline {
     agent {
-        label 'dock'
+        label 'agent'
     }
 
     environment {
-        SONAR_HOST = 'http://192.168.13.232:9001'
+        GIT_URL = 'https://github.com/SonarSource/sonar-scanning-examples.git'
+        GIT_BRANCH = 'master'
         SONAR_LOGIN = 'admin'
         SONAR_PASSWORD = 'admin'
+        SONAR_PORT = 9000
     }
 
     stages {
+
         stage('Pull from git') {
             steps {
-                sh 'mkdir repo'
-                dir('repo') {
-                    git branch: 'master', url: 'https://github.com/SonarSource/sonar-scanning-examples.git'
-                }
+                git branch: "${GIT_BRANCH}", url: "${GIT_URL}"
             }
         }
 
         stage('Launch Sonarqube') {
             steps {
-                sh 'docker run --rm -d --name sonarqube2 -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p 9000:9000 sonarqube:latest'
+                sh 'docker run --rm -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p ${SONAR_PORT}:9000 sonarqube:latest'
                 script {
+                    env.SONAR_HOST = "http://${sh(script:'docker exec sonarqube hostname -I', returnStdout: true).trim()}:${SONAR_PORT}"
                     waitForSonarQube("${SONAR_HOST}", 300)
                 }
             }
@@ -70,8 +71,8 @@ pipeline {
             steps {
                 script {
                     sh """
-                        cd repo/sonarqube-scanner-gradle/gradle-basic
-                        ./gradlew sonarqube \
+                        cd sonarqube-scanner-gradle/gradle-basic
+                        ./gradlew sonar \
                             -Dsonar.projectKey=my_project \
                             -Dsonar.host.url=${SONAR_HOST} \
                             -Dsonar.login=${TOKEN}
@@ -83,7 +84,7 @@ pipeline {
 
     post {
         always {
-            sh 'docker stop sonarqube2'
+            sh 'docker stop sonarqube'
             cleanWs deleteDirs: true
         }
         failure {
