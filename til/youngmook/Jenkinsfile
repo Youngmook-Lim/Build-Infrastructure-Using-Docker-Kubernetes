@@ -1,4 +1,5 @@
 pipeline {
+
     agent {
         label 'agent'
     }
@@ -6,6 +7,7 @@ pipeline {
     environment {
         GIT_URL = 'https://github.com/SonarSource/sonar-scanning-examples.git'
         GIT_BRANCH = 'master'
+        BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
         SONAR_LOGIN = 'admin'
         SONAR_PASSWORD = 'admin'
         SONAR_PORT = 9000
@@ -24,6 +26,7 @@ pipeline {
                 sh 'docker run --rm -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p ${SONAR_PORT}:9000 sonarqube:latest'
                 script {
                     env.SONAR_HOST = "http://${sh(script:'docker exec sonarqube hostname -I', returnStdout: true).trim()}:${SONAR_PORT}"
+                    echo "${SONAR_HOST}"
                     waitForSonarQube("${SONAR_HOST}", 300)
                 }
             }
@@ -61,23 +64,83 @@ pipeline {
                         echo "Token: ${TOKEN}"
                     ''', returnStdout: true).trim()
 
-                    env.TOKEN = tokenOutput.substring(tokenOutput.lastIndexOf("Token: ") + 7)
-                    echo "Token: ${TOKEN}"
+                    env.SONAR_TOKEN = tokenOutput.substring(tokenOutput.lastIndexOf("Token: ") + 7)
+                    echo "Token: ${SONAR_TOKEN}"
                 }
             }
         }
 
         stage('Sonarqube analysis') {
             steps {
-                script {
+                dir("${BUILD_PATH}") {
                     sh """
-                        cd sonarqube-scanner-gradle/gradle-basic
-                        ./gradlew sonar \
-                            -Dsonar.projectKey=my_project \
+                        ./gradlew clean build sonar \\
                             -Dsonar.host.url=${SONAR_HOST} \
-                            -Dsonar.login=${TOKEN}
+                            -Dsonar.login=${SONAR_LOGIN} \
+                            -Dsonar.password=${SONAR_PASSWORD} \
+                            -Dsonar.projectKey=my_project_mook \
+                            -Dsonar.projectName=my_project_name \
+                            -Dsonar.projectVersion=1.0 \
+                            -Dsonar.scm.disabled=true \
+                            -Dsonar.analysis.mode=publish \
+                            -Dsonar.verbose=true
                     """
                 }
+            }
+        }
+
+        stage('Sonarqube Quality Gate') {
+            steps {
+                script {
+                    // Wait for analysis report to be processed by SonarQube
+                    def waitTime = 0
+                    def maxWaitTime = 60
+                    def analysisStatus = 'NONE'
+                    while (analysisStatus == 'NONE' && waitTime < maxWaitTime) {
+                        def jsonAnalysis = sh(script: "curl -s ${SONAR_HOST}/api/qualitygates/project_status?projectKey=my_project_mook -u ${SONAR_LOGIN}:${SONAR_PASSWORD}", returnStdout: true).trim()
+                        analysisStatus = new groovy.json.JsonSlurper().parseText(jsonAnalysis).projectStatus.status
+                        if (analysisStatus == 'NONE') {
+                            echo 'Analysis report is still being processed by SonarQube, waiting for 10 seconds...'
+                            sleep(10)
+                            waitTime += 10
+                        }
+                    }
+
+                    if (waitTime >= maxWaitTime) {
+                        error('Timeout waiting for analysis report to be processed by SonarQube')
+                    }
+
+                    // Check quality gate status
+                    if (analysisStatus == 'WARN') {
+                        echo "Quality gate status: WARN. Aborting..."
+                        exit pipeline
+                    } else if (analysisStatus == 'ERROR') {
+                        echo "Quality gate status: ERROR. Aborting..."
+                        exit pipeline
+                    }
+                    echo "********** Quality gate status: ${analysisStatus} **********"
+                }
+            }
+        }
+
+        stage('Save Sonarqube Report') {
+            steps {
+                script {
+                    // Fetch data from SonarQube Web API
+                    def metrics = 'ncloc,coverage,violations,complexity,bugs,vulnerabilities,code_smells'
+                    def jsonData = sh(script: "curl -s -u ${SONAR_LOGIN}:${SONAR_PASSWORD} ${SONAR_HOST}/api/measures/component?component=my_project_mook", returnStdout: true).trim()
+                    // Save JSON data to a file
+                    writeFile file: 'sonarqube-report.json', text: jsonData
+
+                    // Optional: Print the content of the JSON file
+                    sh "cat sonarqube-report.json"
+                }
+            }
+        }
+
+        stage('Save Report') {
+            steps {
+                archiveArtifacts artifacts: 'sonarqube-report.json', fingerprint: true
             }
         }
     }
