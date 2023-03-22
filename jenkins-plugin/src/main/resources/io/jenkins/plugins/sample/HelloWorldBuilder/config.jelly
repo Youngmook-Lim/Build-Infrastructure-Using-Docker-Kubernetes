@@ -29,15 +29,15 @@
     </f:entry>
 
     <script>
-        document.getElementsByTagName("form")[1].addEventListener("submit",(event) => {
+        document.getElementsByTagName("form")[1].addEventListener("submit",(event) => { // submit event 등록
             const hasEmptyValue = variables.some((v) => v === null || v === "");
             if (hasEmptyValue) {
                 event.preventDefault();
                 alert("입력되지 않은 값이 존재합니다. 다시 한번 확인해주세요.");
                 return;
             }
-
         });
+
         const variables = [null, null, null, null, null];
         const types = ["nameErr", "urlErr", "branchErr", "languageErr", "buildEnvErr"];
         const errTexts = {
@@ -49,9 +49,12 @@
         };
 
         variables.map((v, i) => {
-           if(v === null || v === ""){
-               document.getElementsByClassName(types[i])[0].innerText = errTexts[types[i]];
-           }
+            const node = document.getElementsByClassName(types[i])[0];
+            if((v === null || v === "")){
+                if(node){
+                    node.innerText = errTexts[types[i]];
+                }
+            }
         });
 
         function handleChange(event, type) {
