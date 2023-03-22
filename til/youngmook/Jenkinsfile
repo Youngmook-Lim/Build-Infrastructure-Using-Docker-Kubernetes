@@ -9,15 +9,9 @@ pipeline {
         SONAR_PASSWORD = 'admin'
     }
 
-    tools {
-        maven 'maven'
-        gradle 'gradle'
-    }
-
     stages {
         stage('Pull from git') {
             steps {
-                sh 'rm -rf repo'
                 sh 'mkdir repo'
                 dir('repo') {
                     git branch: 'master', url: 'https://github.com/SonarSource/sonar-scanning-examples.git'
@@ -27,7 +21,7 @@ pipeline {
 
         stage('Launch Sonarqube') {
             steps {
-                sh 'docker run --rm -d --name sonarqube2 -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p 9001:9000 sonarqube:latest'
+                sh 'docker run --rm -d --name sonarqube2 -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p 9000:9000 sonarqube:latest'
                 script {
                     waitForSonarQube("${SONAR_HOST}", 300)
                 }
@@ -90,6 +84,7 @@ pipeline {
     post {
         always {
             sh 'docker stop sonarqube2'
+            cleanWs deleteDirs: true
         }
         failure {
             echo "You failed :("
