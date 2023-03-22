@@ -41,7 +41,7 @@
     - [x]  (이전에 빌드한 커밋으로 판단될 경우) 빌드 중단하도록 만들기
 
 ### 2023-03-22 작업 내용
-- [ ]  이전에 빌드된 커밋인지 확인하는 기능을 script로 만들기
-    - [ ]  Jenkins Freestyle Job에서 동작하도록 만들기
-    - [ ]  Jenkins Pipeline Script로 변환 (Jenkinsfile)
+- [x]  이전에 빌드된 커밋인지 확인하는 기능을 script로 만들기
+    - [x]  Jenkins Freestyle Job에서 동작하도록 만들기
+    - [x]  Jenkins Pipeline Script로 변환 (Jenkinsfile)
 
