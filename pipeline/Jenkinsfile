@@ -1,0 +1,138 @@
+def buildAgent
+
+pipeline {
+    agent none
+
+    environment {
+        GIT_URL = "https://github.com/joykst96/random-pick"
+        GIT_BRANCH = "master"
+    }
+
+    // parameters {
+    //     number(name: 'PRIORITY', defaultValue: 5, description: 'Set the build priority. This can be from 1 to 10, with higher numbers indicating higher priority.')
+    // }
+
+    // options {
+    //     priority(params.PRIORITY)
+    // }
+
+    stages {
+        stage('duplication check') {
+            agent {
+                label 'master'
+            }
+            steps {
+                echo '중복빌드 검사가 들어가야 할 스테이지 입니다.'
+                // if (중복일경우) {
+                //     echo "동일한 빌드 #${중복된 빌드번호} 빌드가 존재합니다."
+                //     archiveArtifacts artifacts: '중복된 빌드의 아티팩트 위치', followSymlinks: false
+                //     exit pipeline
+                // }
+            }
+        }
+        stage('select agent') {
+            agent {
+                label 'agent'
+            }
+            steps {
+                script {
+                    echo '빌드 에이전트를 선택합니다.'
+                    buildAgent = env.NODE_NAME
+                    echo "선택한 에이전트는 ${buildAgent}입니다."
+                }
+            }
+        }
+
+        stage('git clone') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                git branch: "${GIT_BRANCH}", url: "${GIT_URL}"
+            }
+        }
+
+        stage('make sonarqube container') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                echo '정적검사를 위한 소나큐브 컨테이너를 띄웁니다.'
+            }
+        }
+
+        stage('quality gate') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                script {
+                    echo '정적검사를 시작합니다.'
+                    // 소나큐브 실행
+                    echo '검사중...'
+                    // 소나큐브 종료
+                    // if (통과 못했음) {
+                    //     error '정적검사에 실패했습니다. 빌드를 진행할 수 없습니다.'
+                    //     exit pipeline
+                    // }
+                    echo '정적검사를 통과했습니다.'
+                }
+            }
+        }
+
+        stage('build') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                script {
+                    echo '빌드 컨테이너에서 빌드를 진행합니다.'
+                    sh 'docker run --rm -v ./:/home/tmp/workspace alpine sh -c "apk add openjdk11;cd /home/tmp/workspace;sh gradlew clean build > jenkins_build_log"'
+                }
+            }
+            post {
+                failure {
+                    script {
+                        // 실패했는데 로그에 FAILED가 안찍히면 끝까지 못간것 -> 끝까지 가기전에 뭔가 외부요인이 개입
+                        if (!readFile('jenkins_build_log').contains("FAILED")) {
+                            // 최우선 순위로 재요청
+                            // build job: env.JOB_NAME, parameters: [number(name: 'PRIORITY', value: 10)], wait: true
+                            build job: env.JOB_NAME, wait: true
+                            exit pipeline
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('stash artifacts in agent') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                stash(name: 'artifacts', includes: 'build/libs/*')
+            }
+        }
+
+        stage('unstash artifacts in matser') {
+            agent {
+                label 'master'
+            }
+            steps {
+                unstash('artifacts')
+                sh "mkdir ${currentBuild.number}"
+                sh "mv build/libs/* ${currentBuild.number}"
+                sh "rm -r build"
+            }
+        }
+
+        stage('deploy artifacts') {
+            agent {
+                label 'master'
+            }
+            steps {
+                archiveArtifacts artifacts: "${currentBuild.number}/*", followSymlinks: false
+            }
+        }
+    }
+}
