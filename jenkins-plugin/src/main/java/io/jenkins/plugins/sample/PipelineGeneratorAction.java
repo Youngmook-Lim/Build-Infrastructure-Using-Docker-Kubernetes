@@ -6,7 +6,6 @@ import jenkins.model.Jenkins;
 
 @Extension
 public class PipelineGeneratorAction implements RootAction {
-
     @Override
     public String getIconFileName() {
         return "plugin.png";
@@ -19,7 +18,7 @@ public class PipelineGeneratorAction implements RootAction {
 
     @Override
     public String getUrlName() {
-        return "job/"+getCurrentUserId()+"/job/pipelinegenerator/configure";
+        return "job/"+getCurrentUserId()+"-pg/configure";
     }
 
     private String getCurrentUserId() {
