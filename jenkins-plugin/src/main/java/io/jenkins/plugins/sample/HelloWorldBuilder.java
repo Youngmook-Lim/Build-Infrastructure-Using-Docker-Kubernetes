@@ -92,9 +92,16 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     public void perform(Run<?, ?> run, FilePath workspace, EnvVars env, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
 
         Jenkins jenkinsInstance = Jenkins.get();
+        if(name.equals("") || gitUrl.equals("") || language.equals("") || buildEnv.equals("") || branch.equals("")) {
+            listener.getLogger().println("build history에 실패했습니다. 필수 입력 값이 비어 있습니다.");
+            WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
+            job.makeDisabled(true);
+            return;
+        }
         String jobName = run.getParent().getDisplayName();
         // 로그인한 사용자 이름을 가져옵니다.
         String currentUsername=jobName.split("-")[0];
+
 
         // Create a new Pipeline Job
         try {
