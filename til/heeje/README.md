@@ -273,3 +273,81 @@ vi /home/ansible-playbooks/playbook-install-docker.yml
 ```
 ansible-playbook /home/ansible-playbooks/playbook-install-docker.yml# resetting the permissions
 ```
+
+## Kubernetes 설치
+
+### 1. Kubernetes 설치를 위한 Shell script 파일 생성
+
+```
+vi /home/init-scripts/install-k8s.sh
+```
+
+- 아래 내용 입력 및 저장
+
+```
+# swap disable setting
+sudo swapoff -a && sudo sed -i '/swap/s/^/#/' /etc/fstab
+
+# iptable setting
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+br_netfilter
+EOF
+
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+sudo sysctl --system
+
+# apt-get update, add required package
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl
+
+# download google cloud public key
+sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+
+# add kubetnetes storage
+echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+# install kubelet, kubeadm, kubectl
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+
+# register k8s, restart
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+```
+
+### 2. Kubernetes 설치를 위한 Ansible-Playbook 파일 생성
+
+```
+vi /home/ansible-playbooks/playbook-install-k8s.yml
+```
+
+- 아래 내용 입력 및 저장
+
+```
+- name: Install K8s
+  hosts: all
+  remote_user: ubuntu
+  tasks:
+    - name: Copy K8s install shell script
+      copy:
+        src=/home/init-scripts/install-k8s.sh
+        dest=/home/ubuntu/scripts/
+        mode=0777
+
+    - name: Execute script
+      command: sh /home/ubuntu/scripts/install-k8s.sh
+      async: 3600
+      poll: 5
+```
+
+### 3. Kubernetes 설치를 위한 Ansible Playbook 실행
+
+```
+ansible-playbook /home/ansible-playbooks/playbook-install-k8s.yml
+```
+
+![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/9cea00a7-7353-44b3-b52b-28639285f1e5/Untitled.png)
