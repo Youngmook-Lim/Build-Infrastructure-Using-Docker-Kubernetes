@@ -10,6 +10,7 @@ import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.tasks.Builder;
 import hudson.tasks.BuildStepDescriptor;
+import io.jenkins.cli.shaded.org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import jenkins.model.Jenkins;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
 import hudson.model.TopLevelItem;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
@@ -113,9 +115,14 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
     @Override
     public void perform(Run<?, ?> run, FilePath workspace, EnvVars env, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
-
-
         Jenkins jenkinsInstance = Jenkins.get();
+
+        if(name.equals("") || gitUrl.equals("") || language.equals("") || buildEnv.equals("") || branch.equals("")) {
+            listener.getLogger().println("build history에 실패했습니다. 필수 입력 값이 비어 있습니다.");
+            WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
+            job.makeDisabled(true);
+            return;
+        }
 
         // 로그인한 사용자 이름을 가져옵니다.
         String currentUsername = getCurrentUserId();
@@ -133,6 +140,8 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         TopLevelItem jobItem = userFolder.getItem(name);
         if (jobItem != null) {
             listener.getLogger().println("Job with this name already exists: " + name);
+            WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
+            job.makeDisabled(true);
             return;
         }
 
@@ -162,18 +171,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
             }
             return FormValidation.ok();
         }
-        public FormValidation doCheckBuildEnv(@QueryParameter String buildEnv)throws IOException, ServletException {
-            if (buildEnv.length() == 0) {
-                return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingBuildEnv());
-            }
-            return FormValidation.ok();
-        }
-        public FormValidation doCheckLanguage(@QueryParameter String language)throws IOException, ServletException {
-            if (language.length() == 0) {
-                return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingLanguage());
-            }
-            return FormValidation.ok();
-        }
+
         public FormValidation doCheckName(@QueryParameter String value) throws IOException, ServletException {
             if (value.length() == 0)
                 return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingName());
