@@ -8,6 +8,7 @@ import hudson.model.*;
 import hudson.util.FormValidation;
 import hudson.tasks.Builder;
 import hudson.tasks.BuildStepDescriptor;
+import io.jenkins.cli.shaded.org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import jenkins.model.Jenkins;
@@ -19,7 +20,8 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
-
+import hudson.model.TopLevelItem;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
@@ -129,18 +131,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
             }
             return FormValidation.ok();
         }
-        public FormValidation doCheckBuildEnv(@QueryParameter String buildEnv)throws IOException, ServletException {
-            if (buildEnv.length() == 0) {
-                return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingBuildEnv());
-            }
-            return FormValidation.ok();
-        }
-        public FormValidation doCheckLanguage(@QueryParameter String language)throws IOException, ServletException {
-            if (language.length() == 0) {
-                return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingLanguage());
-            }
-            return FormValidation.ok();
-        }
+
         public FormValidation doCheckName(@QueryParameter String value) throws IOException, ServletException {
             if (value.length() == 0)
                 return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingName());
