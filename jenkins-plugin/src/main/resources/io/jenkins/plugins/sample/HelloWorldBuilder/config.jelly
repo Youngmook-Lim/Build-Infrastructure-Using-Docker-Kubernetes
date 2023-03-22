@@ -1,27 +1,73 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
     <f:entry title="${%Pipeline Job Name}" field="name"  class="nameField" >
-        <f:textbox />
+        <input type="text" name="name" class="jenkins-input" onchange="handleChange(event,0)" />
+        <div class="nameErr errTxt"></div>
     </f:entry>
     <f:entry title="${%GitURL}" field="gitUrl">
-        <f:textbox />
+        <input type="text" name="gitUrl" class="jenkins-input" onchange="handleChange(event,1)" />
+        <div class="urlErr errTxt"></div>
     </f:entry>
     <f:entry title="${%Branch}" field="branch">
-        <f:textbox />
+        <input type="text" name="branch" class="jenkins-input" onchange="handleChange(event,2)" />
+        <div class="branchErr errTxt"></div>
     </f:entry>
     <f:entry title="${%Language}" field="language">
-        <f:dropdownList title="Select Project Language" name="langSelect">
-            <f:dropdownListBlock title="Java" value="Java" />
-        </f:dropdownList>
+        <select class="jenkins-input" name="language" onchange="handleChange(event,3)" >
+            <option value="">Select Language</option>
+            <option value="java">Java</option>
+        </select>
+        <div class="languageErr errTxt"></div>
     </f:entry>
     <f:entry title="${%Build Environment}" field="buildEnv">
-        <f:dropdownList title="Select Project Build Environment" name="envSelect">
-            <f:dropdownListBlock title="Maven" value="maven" />
-            <f:dropdownListBlock title="Gradle" value="gradle" />
-        </f:dropdownList>
+        <select class="jenkins-input" name="buildEnv" onchange="handleChange(event,4)" >
+            <option value="">Select Build Environment</option>
+            <option value="maven">Maven</option>
+            <option value="gradle">Gradle</option>
+        </select>
+        <div class="buildEnvErr errTxt"></div>
     </f:entry>
 
-<!--    <script>-->
-<!--        const nameBox = document.getElementsByClassName("nameField");-->
-<!--    </script>-->
+    <script>
+        document.getElementsByTagName("form")[1].addEventListener("submit",(event) => {
+            const hasEmptyValue = variables.some((v) => v === null || v === "");
+            if (hasEmptyValue) {
+                event.preventDefault();
+                alert("입력되지 않은 값이 존재합니다. 다시 한번 확인해주세요.");
+                return;
+            }
+
+        });
+        const variables = [null, null, null, null, null];
+        const types = ["nameErr", "urlErr", "branchErr", "languageErr", "buildEnvErr"];
+        const errTexts = {
+            "nameErr" : "Please set a job name",
+            "urlErr" : "Please set a git URL",
+            "branchErr" : "Please set a branch",
+            "languageErr" : "Please select a language",
+            "buildEnvErr" : "Please select a build environment",
+        };
+
+        variables.map((v, i) => {
+           if(v === null || v === ""){
+               document.getElementsByClassName(types[i])[0].innerText = errTexts[types[i]];
+           }
+        });
+
+        function handleChange(event, type) {
+            variables[type] = event.target.value;
+            if(variables[type] === null || variables[type] === ""){
+                document.getElementsByClassName(types[type])[0].innerText = errTexts[types[type]];
+            }else{
+                document.getElementsByClassName(types[type])[0].innerText = "";
+            }
+        }
+    </script>
+
+    <style>
+        .errTxt{
+            color : red;
+            font-weight:bold;
+        }
+    </style>
 </j:jelly>
