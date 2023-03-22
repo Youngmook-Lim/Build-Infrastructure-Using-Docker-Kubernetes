@@ -351,3 +351,62 @@ ansible-playbook /home/ansible-playbooks/playbook-install-k8s.yml
 ```
 
 ![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/9cea00a7-7353-44b3-b52b-28639285f1e5/Untitled.png)
+
+## Kubernetes Master 초기화
+
+### 1. Kubernetes 초기화를 위한 Shell script 파일 생성
+
+```
+vi /home/init-scripts/init-k8s-master.sh
+```
+
+- 아래 내용 입력 및 저장
+
+```
+sudo rm /etc/containerd/config.toml
+sudo systemctl restart containerd
+
+# initialize control-plane node
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+
+# setting for using kube command all of users
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# install Pod network addon
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+```
+
+- `kubeadm join` 으로 시작하는 명령어가 출력되면 저장해둔다. (Worker Node를 Kubernetes Master와 연결할 때 쓰임)
+
+### 2. Kubernetes 초기화를 위한 Ansible-Playbook 파일 생성
+
+```
+vi /home/ansible-playbooks/playbook-init-k8s-master.yml
+```
+
+- 아래 내용 입력 및 저장
+
+```
+- name: Setting K8s master
+  hosts: k8s-master
+  remote_user: ubuntu
+  tasks:
+    - name: Copy K8s initial setting shell script
+      copy:
+        src=/home/init-scripts/init-k8s-master.sh
+        dest=/home/ubuntu/scripts/
+        mode=0777
+
+    - name: Execute script
+      command: sh /home/ubuntu/scripts/init-k8s-master.sh
+      async: 3600
+      poll: 5
+```
+
+### 3. Kubernetes 초기화를 위한 Ansible Playbook 실행
+
+```
+ansible-playbook /home/ansible-playbooks/playbook-init-k8s-master.yml
+```
