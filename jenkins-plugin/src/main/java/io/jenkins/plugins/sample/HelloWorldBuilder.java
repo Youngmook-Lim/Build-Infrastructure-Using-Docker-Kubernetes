@@ -23,6 +23,10 @@ import org.jenkinsci.Symbol;
 import hudson.model.TopLevelItem;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
+import hudson.security.ProjectMatrixAuthorizationStrategy;
+import hudson.security.Permission;
+import hudson.security.AuthorizationMatrixProperty;
+
 public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
     private final String name;
@@ -104,6 +108,10 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         // 로그인한 사용자 이름을 가져옵니다.
         String currentUsername=jobName.split("-")[0];
 
+        WorkflowJob parentJob = (WorkflowJob) run.getParent();
+
+        // 상위 작업의 AuthorizationMatrixProperty 가져오기
+        AuthorizationMatrixProperty parentAuthMatrix = parentJob.getProperty(AuthorizationMatrixProperty.class);
 
         // Create a new Pipeline Job
         try {
@@ -111,6 +119,13 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
             if (item instanceof WorkflowJob) {
                 WorkflowJob job = (WorkflowJob) item;
                 job.setDefinition(new CpsFlowDefinition(generateScript(), true));
+
+                // 새 작업에 상위 작업의 AuthorizationMatrixProperty 설정
+                if (parentAuthMatrix != null) {
+                    AuthorizationMatrixProperty authMatrix = new AuthorizationMatrixProperty(parentAuthMatrix.getGrantedPermissions());
+                    job.addProperty(authMatrix);
+                }
+
                 job.save();
                 job.scheduleBuild2(0).waitForStart();
             } else {
