@@ -4,8 +4,10 @@ pipeline {
     agent none
 
     environment {
-        GIT_URL = "https://github.com/joykst96/random-pick"
+        GIT_URL = "https://github.com/SonarSource/sonar-scanning-examples.git"
         GIT_BRANCH = "master"
+        BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
+        HOST_BIND_MOUNT = '/home/ubuntu/tmp/workspace'
     }
 
     // parameters {
@@ -80,20 +82,21 @@ pipeline {
             }
         }
 
-        stage('build') {
+        stage('Build') {
             agent {
                 label "${buildAgent}"
             }
             steps {
                 script {
                     echo '빌드 컨테이너에서 빌드를 진행합니다.'
-                    sh 'docker run --rm -v ./:/home/tmp/workspace alpine sh -c "apk add openjdk11;cd /home/tmp/workspace;sh gradlew clean build > jenkins_build_log"'
+                    sh 'docker run --rm -v ${HOST_BIND_MOUNT}/${JOB_NAME}:/home/tmp/workspace/ openjdk:11 sh -c "cd /home/tmp/workspace/${BUILD_PATH}; sh gradlew clean build 2>&1 | tee jenkins_build_log"'
                 }
             }
             post {
                 failure {
                     script {
                         // 실패했는데 로그에 FAILED가 안찍히면 끝까지 못간것 -> 끝까지 가기전에 뭔가 외부요인이 개입
+                        echo "BUILD FAILED!"
                         if (!readFile('jenkins_build_log').contains("FAILED")) {
                             // 최우선 순위로 재요청
                             // build job: env.JOB_NAME, parameters: [number(name: 'PRIORITY', value: 10)], wait: true
@@ -105,24 +108,31 @@ pipeline {
             }
         }
 
-        stage('stash artifacts in agent') {
+        stage('Stash artifacts in agent') {
             agent {
                 label "${buildAgent}"
             }
             steps {
-                stash(name: 'artifacts', includes: 'build/libs/*')
+                script {
+                    sh 'pwd'
+                    sh 'ls -a'
+                }
+                stash(name: 'artifacts', includes: "${BUILD_PATH}/build/libs/*")
             }
         }
 
-        stage('unstash artifacts in matser') {
+        stage('Unstash artifacts in master') {
             agent {
                 label 'master'
             }
             steps {
                 unstash('artifacts')
                 sh "mkdir ${currentBuild.number}"
-                sh "mv build/libs/* ${currentBuild.number}"
-                sh "rm -r build"
+                sh "mv ${BUILD_PATH}/build/libs/* ${currentBuild.number}"
+                script {
+                    def rootDir = BUILD_PATH.split('/')[0]
+                    sh "rm -r ${rootDir}"
+                }
             }
         }
 
@@ -132,6 +142,23 @@ pipeline {
             }
             steps {
                 archiveArtifacts artifacts: "${currentBuild.number}/*", followSymlinks: false
+            }
+        }
+    }
+
+    post {
+        always {
+            node("${buildAgent}") {
+                cleanWs deleteDirs: true
+                // dir("${env.WORKSPACE}/..") {
+                //     sh 'find . -type d -name "pipeline-*_ws-cleanup_*" -exec rm -r {} \\;'
+                // }
+                withEnv(['USER=root']) {
+                    sh 'whoami'
+                    sh 'cd ..'
+                    sh 'pwd'
+                    sh "find . -type d -name 'pipeline-*_ws-cleanup_*' -exec rm -r {} \\;"
+                }
             }
         }
     }
