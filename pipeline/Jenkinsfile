@@ -1,0 +1,368 @@
+def buildAgent
+
+pipeline {
+    agent none
+
+    environment {
+        GIT_URL = "https://github.com/SonarSource/sonar-scanning-examples.git"
+        GIT_BRANCH = "master"
+        BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
+        HOST_BIND_MOUNT = '/home/ubuntu/tmp/workspace'
+        SONAR_LOGIN = 'admin'
+        SONAR_PASSWORD = 'admin'
+        SONAR_PORT = 9000
+        JENKINS_PORT = 8080
+        AUTHENTICATION_ID = 'jenkins_api_token123'
+    }
+
+    // parameters {
+    //     number(name: 'PRIORITY', defaultValue: 5, description: 'Set the build priority. This can be from 1 to 10, with higher numbers indicating higher priority.')
+    // }
+
+    // options {
+    //     priority(params.PRIORITY)
+    // }
+
+    stages {
+        // stage('Duplication check') {
+        //     agent {
+        //         label 'master'
+        //     }
+        //     steps {
+        //         echo '중복빌드 검사가 들어가야 할 스테이지 입니다.'
+
+        //         script {
+        //             // Get the latest commit hash from the remote repository
+        //             def latestCommit = sh(script: "git ls-remote ${GIT_URL} HEAD | awk '{print \$1}'", returnStdout: true).trim()
+        //             echo "Latest commit hash: ${latestCommit}"
+
+        //             env.JENKINS_URL = "http://${sh(script:'docker exec jenkins-docker hostname -I', returnStdout: true).trim()}:${JENKINS_PORT}"
+        //             echo "JENKINS_URL: ${JENKINS_URL}"
+
+        //             def buildStatusUrl = "${JENKINS_URL}/job/${JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]"
+        //             echo buildStatusUrl
+
+        //             def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: AUTHENTICATION_ID, acceptType: 'APPLICATION_JSON')
+        //             def buildStatusJson = readJSON text: buildStatusResponse.content
+
+        //             def commitBuilt = false
+        //             for (build in buildStatusJson.allBuilds) {
+        //                 def branchBuildInfo = build.actions.find { it.buildsByBranchName }
+        //                 if (branchBuildInfo) {
+        //                     def commitInfo = branchBuildInfo.buildsByBranchName.values().find { it.revision.SHA1 == latestCommit }
+        //                     if (commitInfo && build.result == 'SUCCESS') {
+        //                         commitBuilt = true
+        //                         break
+        //                     }
+        //                 }
+        //             }
+
+        //             if (commitBuilt) {
+        //                 echo "Latest commit ${latestCommit} was built successfully. Stopping the build."
+        //                 currentBuild.result = 'ABORTED'
+        //                 error("Build was aborted because the latest commit ${latestCommit} has already been built successfully.")
+        //             } else {
+        //                 echo "Latest commit ${latestCommit} was not built or not built successfully. Continuing the build."
+        //             }
+        //         }
+
+
+        //         // if (중복일경우) {
+        //         //     echo "동일한 빌드 #${중복된 빌드번호} 빌드가 존재합니다."
+        //         //     archiveArtifacts artifacts: '중복된 빌드의 아티팩트 위치', followSymlinks: false
+        //         //     exit pipeline
+        //         // }
+        //     }
+        // }
+
+        stage('Select agent') {
+            agent {
+                label 'agent'
+            }
+            steps {
+                script {
+                    echo '빌드 에이전트를 선택합니다.'
+                    buildAgent = env.NODE_NAME
+                    echo "선택한 에이전트는 ${buildAgent}입니다."
+                }
+            }
+        }
+
+        stage('Git clone') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                git branch: "${GIT_BRANCH}", url: "${GIT_URL}"
+            }
+        }
+
+        stage('Launch Sonarqube container') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                echo '정적검사를 위한 소나큐브 컨테이너를 띄웁니다.'
+                sh 'docker run --rm -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p ${SONAR_PORT}:9000 sonarqube:latest'
+                script {
+                    env.SONAR_HOST = "http://${sh(script:'docker exec sonarqube hostname -I', returnStdout: true).trim()}:${SONAR_PORT}"
+                    waitForSonarQube("${SONAR_HOST}", 300)
+                }
+            }
+        }
+
+        stage('Get Sonarqube token') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                echo '소나큐브 토큰을 받아 환경변수로 저장합니다.'
+                script {
+                    def tokenOutput = sh(script: '''
+                        USER_LOGIN=admin
+                        TOKEN_NAME="My Jenkins Token"
+                        MAX_RETRIES=12
+                        RETRY_INTERVAL=5
+
+                        for i in $(seq 1 $MAX_RETRIES); do
+                            echo "Attempt #$i to get token..."
+                            TOKEN=$(curl -s -u "${SONAR_LOGIN}:${SONAR_PASSWORD}" -X POST "${SONAR_HOST}/api/user_tokens/generate" \
+                                -d "name=${TOKEN_NAME}" \
+                                -d "login=${USER_LOGIN}" \
+                                | sed -n 's/.*\"token\":\"\\([^\"]*\\)\".*/\\1/p')
+                            if [ -n "$TOKEN" ]; then
+                                echo "Token: ${TOKEN}"
+                                break
+                            else
+                                echo "Token not received, waiting for $RETRY_INTERVAL seconds before retrying..."
+                                sleep $RETRY_INTERVAL
+                            fi
+                        done
+
+                        if [ -z "$TOKEN" ]; then
+                            echo "Failed to get token after $MAX_RETRIES attempts."
+                            exit 1
+                        fi
+
+                        echo "Token: ${TOKEN}"
+                    ''', returnStdout: true).trim()
+
+                    env.SONAR_TOKEN = tokenOutput.substring(tokenOutput.lastIndexOf("Token: ") + 7)
+                    echo "Token: ${SONAR_TOKEN}"
+                }
+            }
+        }
+
+        stage('Sonarqube Scan') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                echo '소나큐브 정적검사를 실행합니다.'
+                dir("${BUILD_PATH}") {
+                    script {
+                        // Get the project key
+                        env.COMMIT_HASH = sh(script: "git ls-remote ${GIT_URL} HEAD | awk '{print \$1}'", returnStdout: true).trim()
+
+                        // Get the repository name
+                        def repositoryName = sh(script: "basename -s .git ${GIT_URL}", returnStdout: true).trim()
+
+                        // Run the analysis
+                        sh """
+                            ./gradlew clean build sonar \\
+                                -Dsonar.host.url=${SONAR_HOST} \\
+                                -Dsonar.login=${SONAR_LOGIN} \\
+                                -Dsonar.password=${SONAR_PASSWORD} \\
+                                -Dsonar.projectKey=${COMMIT_HASH} \\
+                                -Dsonar.projectName=${repositoryName} \\
+                                -Dsonar.projectVersion=1.0 \\
+                                -Dsonar.scm.disabled=true \\
+                                -Dsonar.analysis.mode=publish \\
+                                -Dsonar.verbose=true
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Sonarqube Quality Gate') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                script {
+                    // Wait for analysis report to be processed by SonarQube
+                    def waitTime = 0
+                    def maxWaitTime = 60
+                    def analysisStatus = 'NONE'
+                    while (analysisStatus == 'NONE' && waitTime < maxWaitTime) {
+                        def jsonAnalysis = sh(script: "curl -s ${SONAR_HOST}/api/qualitygates/project_status?projectKey=${COMMIT_HASH} -u ${SONAR_LOGIN}:${SONAR_PASSWORD}", returnStdout: true).trim()
+                        analysisStatus = new groovy.json.JsonSlurper().parseText(jsonAnalysis).projectStatus.status
+                        if (analysisStatus == 'NONE') {
+                            echo 'Analysis report is still being processed by SonarQube, waiting for 10 seconds...'
+                            sleep(10)
+                            waitTime += 10
+                        }
+                    }
+
+                    if (waitTime >= maxWaitTime) {
+                        error('Timeout waiting for analysis report to be processed by SonarQube')
+                    }
+
+                    // Check quality gate status
+                    if (analysisStatus == 'WARN') {
+                        echo "Quality gate status: WARN. Aborting..."
+                        exit pipeline
+                    } else if (analysisStatus == 'ERROR') {
+                        echo "Quality gate status: ERROR. Aborting..."
+                        exit pipeline
+                    }
+                    echo "********** Quality gate status: ${analysisStatus} **********"
+                    echo '정적검사를 통과하였습니다.'
+                }
+            }
+        }
+
+        stage('Save Sonarqube Report') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                echo '소나큐브 결과를 파일로 저장합니다.'
+                script {
+                    // Fetch data from SonarQube Web API
+                    def metrics = 'ncloc,coverage,violations,complexity,bugs,vulnerabilities,code_smells,sqale_index,alert_status,reliability_rating,security_rating'
+                    def apiUrl = "${SONAR_HOST}/api/measures/component?component=${COMMIT_HASH}&metricKeys=${metrics}"
+                    def jsonData = sh(script: "curl -s -u ${SONAR_LOGIN}:${SONAR_PASSWORD} '${apiUrl}'", returnStdout: true).trim()
+
+                    // Fetch quality gate status
+                    def qualityGateApiUrl = "${SONAR_HOST}/api/qualitygates/project_status?projectKey=${COMMIT_HASH}"
+                    def qualityGateJsonData = sh(script: "curl -s -u ${SONAR_LOGIN}:${SONAR_PASSWORD} '${qualityGateApiUrl}'", returnStdout: true).trim()
+
+                    // Save JSON data to files
+                    writeFile file: 'sonarqube-report.json', text: jsonData
+                    writeFile file: 'sonarqube-quality-gate-status.json', text: qualityGateJsonData
+
+                    // Optional: Print the content of the JSON files
+                    sh "cat sonarqube-report.json"
+                    sh "cat sonarqube-quality-gate-status.json"
+                }
+            }
+        }
+
+        stage('Save Report') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                echo '저장된 결과파일을 archiveArtifacts로 저장합니다.'
+                archiveArtifacts artifacts: 'sonarqube-report.json', fingerprint: true
+            }
+        }
+
+        stage('Build') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                script {
+                    echo '빌드 컨테이너에서 빌드를 진행합니다.'
+                    sh 'docker run --rm -v ${HOST_BIND_MOUNT}/${JOB_NAME}:/home/tmp/workspace/ openjdk:11 sh -c "cd /home/tmp/workspace/${BUILD_PATH}; sh gradlew clean build 2>&1 | tee jenkins_build_log"'
+                }
+            }
+            post {
+                failure {
+                    script {
+                        // 실패했는데 로그에 FAILED가 안찍히면 끝까지 못간것 -> 끝까지 가기전에 뭔가 외부요인이 개입
+                        echo "BUILD FAILED!"
+                        if (!readFile('jenkins_build_log').contains("FAILED")) {
+                            // 최우선 순위로 재요청
+                            // build job: env.JOB_NAME, parameters: [number(name: 'PRIORITY', value: 10)], wait: true
+                            build job: env.JOB_NAME, wait: true
+                            exit pipeline
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Stash artifacts in agent') {
+            agent {
+                label "${buildAgent}"
+            }
+            steps {
+                script {
+                    sh 'pwd'
+                    sh 'ls -a'
+                }
+                stash(name: 'artifacts', includes: "${BUILD_PATH}/build/libs/*")
+            }
+        }
+
+        stage('Unstash artifacts in master') {
+            agent {
+                label 'master'
+            }
+            steps {
+                unstash('artifacts')
+                sh "mkdir ${currentBuild.number}"
+                sh "mv ${BUILD_PATH}/build/libs/* ${currentBuild.number}"
+                script {
+                    def rootDir = BUILD_PATH.split('/')[0]
+                    sh "rm -r ${rootDir}"
+                }
+            }
+        }
+
+        stage('deploy artifacts') {
+            agent {
+                label 'master'
+            }
+            steps {
+                archiveArtifacts artifacts: "${currentBuild.number}/*", followSymlinks: false
+            }
+        }
+    }
+
+    post {
+        always {
+          script {
+            if (buildAgent) {
+              node("${buildAgent}") {
+                  sh 'docker stop sonarqube'
+                  cleanWs deleteDirs: true
+                  // dir("${env.WORKSPACE}/..") {
+                  //     sh 'find . -type d -name "pipeline-*_ws-cleanup_*" -exec rm -r {} \\;'
+                  // }
+                  withEnv(['USER=root']) {
+                      sh 'whoami'
+                      sh 'cd ..'
+                      sh 'pwd'
+                      sh "find . -type d -name 'pipeline-*_ws-cleanup_*' -exec rm -r {} \\;"
+                  }
+              }
+            }
+          }
+        }
+    }
+}
+
+def waitForSonarQube(sonarQubeUrl, timeout) {
+    def running = false
+    def remainingTime = timeout
+
+    while (remainingTime > 0 && !running) {
+        echo "Attempting to connect to SonarQube at ${sonarQubeUrl}"
+        try {
+            sh(script: "curl --max-time 10 --retry 0 --retry-max-time 10 --retry-connrefused --fail --silent ${sonarQubeUrl}/api/system/status", returnStdout: true)
+            running = true
+        } catch (Exception e) {
+            remainingTime -= 10
+            sleep(10)
+        }
+    }
+
+    if (!running) {
+        error("SonarQube did not start within the expected time.")
+    }
+}
