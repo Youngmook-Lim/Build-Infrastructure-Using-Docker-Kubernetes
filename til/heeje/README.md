@@ -410,3 +410,60 @@ vi /home/ansible-playbooks/playbook-init-k8s-master.yml
 ```
 ansible-playbook /home/ansible-playbooks/playbook-init-k8s-master.yml
 ```
+
+## Worker Node 초기화
+
+### 1. Worker Node 초기화를 위한 Shell script 파일 생성
+
+```
+vi /home/init-scripts/init-k8s-worker.sh
+```
+
+- 아래 내용 입력 및 저장
+
+```
+sudo rm /etc/containerd/config.toml
+sudo systemctl restart containerd
+
+# initialize control-plane node
+sudo kubeadm init
+
+# setting for using kube command all of users
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# install Pod network addon
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+```
+
+### 2. Worker Node 초기화를 위한 Ansible-Playbook 파일 생성
+
+```
+vi /home/ansible-playbooks/playbook-init-k8s-worker.yml
+```
+
+- 아래 내용 입력 및 저장
+
+```
+- name: Setting K8s master
+  hosts: k8s
+  remote_user: ubuntu
+  tasks:
+    - name: Copy K8s initial setting shell script
+      copy:
+        src=/home/init-scripts/init-k8s-master.sh
+        dest=/home/ubuntu/scripts/
+        mode=0777
+
+    - name: Execute script
+      command: sh /home/ubuntu/scripts/init-k8s-master.sh
+      async: 3600
+      poll: 5
+```
+
+### 3. Worker Node 초기화를 위한 Ansible Playbook 실행
+
+```
+ansible-playbook /home/ansible-playbooks/playbook-init-k8s-worker.yml
+```
