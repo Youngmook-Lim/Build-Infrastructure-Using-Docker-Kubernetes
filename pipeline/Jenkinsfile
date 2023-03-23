@@ -169,7 +169,7 @@ pipeline {
 
                         // Run the analysis
                         sh """
-                            ./gradlew clean build sonar \\
+                            ./gradlew sonar \\
                                 -Dsonar.host.url=${SONAR_HOST} \\
                                 -Dsonar.login=${SONAR_LOGIN} \\
                                 -Dsonar.password=${SONAR_PASSWORD} \\
@@ -230,22 +230,75 @@ pipeline {
             steps {
                 echo '소나큐브 결과를 파일로 저장합니다.'
                 script {
-                    // Fetch data from SonarQube Web API
                     def metrics = 'ncloc,coverage,violations,complexity,bugs,vulnerabilities,code_smells,sqale_index,alert_status,reliability_rating,security_rating'
                     def apiUrl = "${SONAR_HOST}/api/measures/component?component=${COMMIT_HASH}&metricKeys=${metrics}"
                     def jsonData = sh(script: "curl -s -u ${SONAR_LOGIN}:${SONAR_PASSWORD} '${apiUrl}'", returnStdout: true).trim()
 
-                    // Fetch quality gate status
                     def qualityGateApiUrl = "${SONAR_HOST}/api/qualitygates/project_status?projectKey=${COMMIT_HASH}"
                     def qualityGateJsonData = sh(script: "curl -s -u ${SONAR_LOGIN}:${SONAR_PASSWORD} '${qualityGateApiUrl}'", returnStdout: true).trim()
 
-                    // Save JSON data to files
-                    writeFile file: 'sonarqube-report.json', text: jsonData
-                    writeFile file: 'sonarqube-quality-gate-status.json', text: qualityGateJsonData
+                    def reportData = readJSON text: jsonData
+                    def qualityGateData = readJSON text: qualityGateJsonData
+                    def qualityGateStatus = qualityGateData['projectStatus']['status']
 
-                    // Optional: Print the content of the JSON files
-                    sh "cat sonarqube-report.json"
-                    sh "cat sonarqube-quality-gate-status.json"
+                    def tableRows = reportData['component']['measures'].collect { measure ->
+                        """
+                            <tr>
+                                <td>${measure['metric']}</td>
+                                <td>${measure['value']}</td>
+                            </tr>
+                        """
+                    }.join("")
+
+                    def html = """
+                        <html>
+                            <head>
+                                <title>SonarQube Report</title>
+                                <style>
+                                    body {
+                                        font-family: Arial, sans-serif;
+                                    }
+                                    h1 {
+                                        font-size: 24px;
+                                    }
+                                    h2 {
+                                        font-size: 20px;
+                                        margin-bottom: 10px;
+                                    }
+                                    table {
+                                        border-collapse: collapse;
+                                        width: 100%;
+                                    }
+                                    th, td {
+                                        border: 1px solid #ddd;
+                                        padding: 8px;
+                                        text-align: left;
+                                    }
+                                    th {
+                                        background-color: #f2f2f2;
+                                        font-weight: bold;
+                                    }
+                                </style>
+                            </head>
+                            <body>
+                                <h1>SonarQube Report</h1>
+                                <h2>SonarQube Quality Gate Status: ${qualityGateStatus}</h2>
+                                <h2>Report Data</h2>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Metric</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tableRows}
+                                    </tbody>
+                                </table>
+                            </body>
+                        </html>
+                    """
+                    writeFile file: 'sonarqube-report.html', text: html
                 }
             }
         }
@@ -256,7 +309,7 @@ pipeline {
             }
             steps {
                 echo '저장된 결과파일을 archiveArtifacts로 저장합니다.'
-                archiveArtifacts artifacts: 'sonarqube-report.json', fingerprint: true
+                archiveArtifacts artifacts: 'sonarqube-report.html', fingerprint: true
             }
         }
 
@@ -291,10 +344,6 @@ pipeline {
                 label "${buildAgent}"
             }
             steps {
-                script {
-                    sh 'pwd'
-                    sh 'ls -a'
-                }
                 stash(name: 'artifacts', includes: "${BUILD_PATH}/build/libs/*")
             }
         }
@@ -334,12 +383,12 @@ pipeline {
                   // dir("${env.WORKSPACE}/..") {
                   //     sh 'find . -type d -name "pipeline-*_ws-cleanup_*" -exec rm -r {} \\;'
                   // }
-                  withEnv(['USER=root']) {
-                      sh 'whoami'
-                      sh 'cd ..'
-                      sh 'pwd'
-                      sh "find . -type d -name 'pipeline-*_ws-cleanup_*' -exec rm -r {} \\;"
-                  }
+                //   withEnv(['USER=root']) {
+                //       sh 'whoami'
+                //       sh 'cd ..'
+                //       sh 'pwd'
+                //       sh "find . -type d -name 'pipeline-*_ws-cleanup_*' -exec rm -r {} \\;"
+                //   }
               }
             }
           }
