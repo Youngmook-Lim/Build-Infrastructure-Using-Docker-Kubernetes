@@ -169,7 +169,7 @@ pipeline {
 
                         // Run the analysis
                         sh """
-                            ./gradlew clean build sonar \\
+                            ./gradlew sonar \\
                                 -Dsonar.host.url=${SONAR_HOST} \\
                                 -Dsonar.login=${SONAR_LOGIN} \\
                                 -Dsonar.password=${SONAR_PASSWORD} \\
