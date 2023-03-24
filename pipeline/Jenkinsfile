@@ -5,7 +5,6 @@ pipeline {
 
     environment {
         GIT_URL = "https://github.com/SonarSource/sonar-scanning-examples.git"
-        GIT_BRANCH = "master"
         BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
         HOST_BIND_MOUNT = '/home/ubuntu/tmp/workspace'
         SONAR_LOGIN = 'admin'
@@ -16,10 +15,9 @@ pipeline {
     }
 
     parameters {
-        // string(name: 'gitUrl', defaultValue: 'test', description: 'Git URL')
         // string(name: 'buildEnv', defaultValue: 'gradle', description: 'Build environment')
         // string(name: 'language', defaultValue: 'java', description: 'Programming language')
-        // string(name: 'branch', defaultValue: 'rtyaes', description: 'Programming language')
+        string(name: 'GIT_BRANCH', defaultValue: 'master', description: 'Git branch')
         string(name: 'commitHash', defaultValue: 'hash1231241421', description: 'Input commit hash to build')
     }
 
@@ -81,7 +79,7 @@ pipeline {
 
         stage('Git clone') {
             steps {
-                git branch: "${GIT_BRANCH}", url: "${GIT_URL}"
+                git branch: "${params.GIT_BRANCH}", url: "${GIT_URL}"
                 echo env.JENKINS_URL
             }
         }
