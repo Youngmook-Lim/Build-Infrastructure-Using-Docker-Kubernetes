@@ -69,7 +69,6 @@ pipeline {
             steps {
                 script {
                     // Replace 'BRANCH_NAME' with the desired branch name
-                    // Replace 'targetCommit' with the desired commit hash value
                     def BRANCH_NAME = params.branch
 
                     checkout([

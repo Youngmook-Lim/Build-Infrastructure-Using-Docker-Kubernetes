@@ -28,12 +28,20 @@ pipeline {
         stage('Check Commit Hash') {
             steps {
                 script {
-                    // Git Remote Repository에서 가장 최근 commit hash 값을 얻어옴. (기능 변경으로 인해 필요없는 코드임.)
-                    // def latestCommit = sh(script: "git ls-remote ${GIT_URL} HEAD | awk '{print \$1}'", returnStdout: true).trim()
-                    // echo "Latest commit hash: ${latestCommit}"
-
-                    def targetCommit = params.commitHash.trim()
-                    echo "User provided commit hash: ${targetCommit}"
+                    targetCommit = params.commitHash.trim()
+                    if(targetCommit == '') { // commit hash 값이 입력되지 않았을 경우.
+                        // 사용자 지정 브랜치에서 가장 최근 commit hash 값을 얻어옴.
+                        targetCommit = sh(script: "git ls-remote ${GIT_URL} ${params.GIT_BRANCH} | awk '{print \$1}'", returnStdout: true).trim()
+                        if(targetCommit == '') {    // 브랜치 이름이 존재하지 않을 경우 빌드 중지
+                            echo "Can't find target branch's commit hash"
+                            currentBuild.result = 'ABORTED'
+                            error("Build was aborted because the ${params.GIT_BRANCH} branch doesn't exist.")
+                        }
+                        echo "targetCommit: ${targetCommit}"
+                        echo "Latest commit hash for branch ${params.GIT_BRANCH}: ${targetCommit}"
+                    } else {
+                        echo "User provided commit hash: ${targetCommit}"
+                    }
 
                     def buildStatusUrl = "${env.JENKINS_URL}/job/${env.JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]"
                     def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: AUTHENTICATION_ID, acceptType: 'APPLICATION_JSON')
@@ -51,7 +59,6 @@ pipeline {
                         }
                     }
 
-                    // 이전에 빌드된 commit hash일 경우 중지 (추후 수정 필요)
                     if (commitBuilt) {
                         echo "Target commit ${targetCommit} was built successfully. Stopping the build."
                         currentBuild.result = 'ABORTED'
@@ -59,13 +66,6 @@ pipeline {
                     } else {
                         echo "Target commit ${targetCommit} was not built or not built successfully. Continuing the build."
                     }
-                    
-                    // 향후 이전에 빌드된 commit hash일 경우 이전에 빌드된 결과물을 출력하도록 변경해야함.
-        //         // if (중복일경우) {
-        //         //     echo "동일한 빌드 #${중복된 빌드번호} 빌드가 존재합니다."
-        //         //     archiveArtifacts artifacts: '중복된 빌드의 아티팩트 위치', followSymlinks: false
-        //         //     exit pipeline
-        //         // }
                 }
             }
         }
@@ -96,9 +96,7 @@ pipeline {
             steps {
                 script {
                     // Replace 'BRANCH_NAME' with the desired branch name
-                    // Replace 'COMMIT_HASH' with the desired commit hash value
-                    def BRANCH_NAME = 'master'
-                    def COMMIT_HASH = params.commitHash.trim()
+                    def BRANCH_NAME = params.GIT_BRANCH
 
                     checkout([
                         $class: 'GitSCM',
@@ -109,7 +107,7 @@ pipeline {
                         userRemoteConfigs: [[url: "${GIT_URL}", refspec: "+refs/heads/${BRANCH_NAME}:refs/remotes/origin/${BRANCH_NAME}"]]
                     ])
 
-                    sh "git checkout ${COMMIT_HASH}"
+                    sh "git checkout ${targetCommit}"
                 }
             }
         }
