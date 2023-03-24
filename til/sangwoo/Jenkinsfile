@@ -1,3 +1,5 @@
+def targetCommit
+
 pipeline {
     agent {
         label 'agent'
@@ -12,22 +14,29 @@ pipeline {
         // string(name: 'gitUrl', defaultValue: 'test', description: 'Git URL')
         // string(name: 'buildEnv', defaultValue: 'gradle', description: 'Build environment')
         // string(name: 'language', defaultValue: 'java', description: 'Programming language')
-        // string(name: 'branch', defaultValue: 'rtyaes', description: 'Programming language')
-        string(name: 'commitHash', defaultValue: 'hash1231241421', description: 'Input commit hash to build')
+        string(name: 'branch', defaultValue: 'master', description: 'Input git branch name')
+        string(name: 'commitHash', defaultValue: '', description: 'Input commit hash to build')
     }
 
 
-    stages {
-
+    stages { 
         stage('Check Commit Hash') {
             steps {
                 script {
-                    // Git Remote Repository에서 가장 최근 commit hash 값을 얻어옴. (기능 변경으로 인해 필요없는 코드임.)
-                    // def latestCommit = sh(script: "git ls-remote ${GIT_URL} HEAD | awk '{print \$1}'", returnStdout: true).trim()
-                    // echo "Latest commit hash: ${latestCommit}"
-
-                    def targetCommit = params.commitHash.trim()
-                    echo "User provided commit hash: ${targetCommit}"
+                    targetCommit = params.commitHash.trim()
+                    if(targetCommit == '') { // commit hash 값이 입력되지 않았을 경우.
+                        // 사용자 지정 브랜치에서 가장 최근 commit hash 값을 얻어옴.
+                        targetCommit = sh(script: "git ls-remote ${GIT_URL} ${params.branch} | awk '{print \$1}'", returnStdout: true).trim()
+                        if(targetCommit == '') {    // 브랜치 이름이 존재하지 않을 경우 빌드 중지
+                            echo "Can't find target branch's commit hash"
+                            currentBuild.result = 'ABORTED'
+                            error("Build was aborted because the ${params.branch} branch doesn't exist.")
+                        }
+                        echo "targetCommit: ${targetCommit}"
+                        echo "Latest commit hash for branch ${params.branch}: ${targetCommit}"
+                    } else {
+                        echo "User provided commit hash: ${targetCommit}"
+                    }
 
                     def buildStatusUrl = "${env.JENKINS_URL}/job/${env.JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]"
                     def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: AUTHENTICATION_ID, acceptType: 'APPLICATION_JSON')
@@ -60,9 +69,8 @@ pipeline {
             steps {
                 script {
                     // Replace 'BRANCH_NAME' with the desired branch name
-                    // Replace 'COMMIT_HASH' with the desired commit hash value
-                    def BRANCH_NAME = 'master'
-                    def COMMIT_HASH = params.commitHash.trim()
+                    // Replace 'targetCommit' with the desired commit hash value
+                    def BRANCH_NAME = params.branch
 
                     checkout([
                         $class: 'GitSCM',
@@ -73,7 +81,7 @@ pipeline {
                         userRemoteConfigs: [[url: "${GIT_URL}", refspec: "+refs/heads/${BRANCH_NAME}:refs/remotes/origin/${BRANCH_NAME}"]]
                     ])
 
-                    sh "git checkout ${COMMIT_HASH}"
+                    sh "git checkout ${targetCommit}"
                 }
             }
         }
