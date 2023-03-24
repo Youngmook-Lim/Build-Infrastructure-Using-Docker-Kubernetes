@@ -2,7 +2,9 @@ package io.jenkins.plugins.sample;
 
 import hudson.Extension;
 import hudson.model.RootAction;
+import hudson.model.TopLevelItem;
 import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 
 @Extension
 public class PipelineGeneratorAction implements RootAction {
@@ -18,7 +20,13 @@ public class PipelineGeneratorAction implements RootAction {
 
     @Override
     public String getUrlName() {
-        return "job/"+getCurrentUserId()+"-pg/configure";
+        TopLevelItem jobItem = Jenkins.get().getItem(getCurrentUserId()+"-pg");
+        if (jobItem != null) {
+
+            return "job/"+getCurrentUserId()+"-pg/configure";
+        }else{
+            return "view/all/newJob";
+        }
     }
 
     private String getCurrentUserId() {

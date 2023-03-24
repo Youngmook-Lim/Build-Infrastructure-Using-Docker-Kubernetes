@@ -131,8 +131,6 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
             return;
         }
 
-
-
         // Create a new Pipeline Job
         try {
             TopLevelItem item = jenkinsInstance.createProject(WorkflowJob.class, currentUsername+"-"+name);
