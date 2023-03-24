@@ -1,12 +1,88 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-    <f:entry title="${%Name}" field="name">
-        <f:textbox />
+    <f:entry title="${%Pipeline Job Name}" field="name"  class="nameField" >
+        <input type="text" name="name" class="jenkins-input" onchange="handleChange(event,0)" />
+        <div class="nameErr errTxt"></div>
     </f:entry>
-    <f:advanced>
-        <f:entry title="${%French}" field="useFrench"
-                 description="${%FrenchDescr}">
-            <f:checkbox />
-        </f:entry>
-    </f:advanced>
+    <f:entry title="${%GitURL}" field="gitUrl">
+        <input type="text" name="gitUrl" class="jenkins-input" onchange="handleChange(event,1)" />
+        <div class="urlErr errTxt"></div>
+    </f:entry>
+    <f:entry title="${%Commit Hash}" field="commitHash">
+        <input type="text" name="commitHash" class="jenkins-input" onchange="handleChangeCommitHash(event)" />
+    </f:entry>
+    <f:entry title="${%Branch}" field="branch">
+        <input type="text" name="branch" class="jenkins-input" onchange="handleChange(event,2)" />
+        <div class="branchErr errTxt"></div>
+    </f:entry>
+    <f:entry title="${%Build Path}" field="buildPath">
+        <input type="text" name="buildPath" class="jenkins-input" onchange="handleChange(event,3)" />
+        <div class="buildPathErr errTxt"></div>
+    </f:entry>
+    <f:entry title="${%Language}" field="language">
+        <select class="jenkins-input" name="language" onchange="handleChange(event,4)" >
+            <option value="">Select Language</option>
+            <option value="java">Java</option>
+        </select>
+        <div class="languageErr errTxt"></div>
+    </f:entry>
+    <f:entry title="${%Build Environment}" field="buildEnv">
+        <select class="jenkins-input" name="buildEnv" onchange="handleChange(event,5)" >
+            <option value="">Select Build Environment</option>
+            <option value="maven">Maven</option>
+            <option value="gradle">Gradle</option>
+        </select>
+        <div class="buildEnvErr errTxt"></div>
+    </f:entry>
+
+    <script>
+        document.getElementsByTagName("form")[1].addEventListener("submit",(event) => { // submit event 등록
+            const hasEmptyValue = variables.some((v) => v === null || v === "");
+            if (hasEmptyValue) {
+                event.preventDefault();
+                alert("입력되지 않은 값이 존재합니다. 다시 한번 확인해주세요.");
+                return;
+            }
+        });
+        let commitHash = null;
+        const variables = [null, null, null, null, null, null];
+        const types = ["nameErr", "urlErr", "branchErr","buildPathErr", "languageErr", "buildEnvErr"];
+        const errTexts = {
+            "nameErr" : "Please set a job name",
+            "urlErr" : "Please set a git URL",
+            "branchErr" : "Please set a branch",
+            "buildPathErr" : "Please set a build path",
+            "languageErr" : "Please select a language",
+            "buildEnvErr" : "Please select a build environment",
+        };
+
+        variables.map((v, i) => {
+            const node = document.getElementsByClassName(types[i])[0];
+            if((v === null || v === "")){
+                if(node){
+                    node.innerText = errTexts[types[i]];
+                }
+            }
+        });
+
+        function handleChange(event, type) {
+            variables[type] = event.target.value;
+            if(variables[type] === null || variables[type] === ""){
+                document.getElementsByClassName(types[type])[0].innerText = errTexts[types[type]];
+            }else{
+                document.getElementsByClassName(types[type])[0].innerText = "";
+            }
+        }
+
+        function handleChangeCommitHash(event){
+            commitHash = event.target.value;
+        }
+    </script>
+
+    <style>
+        .errTxt{
+            color : red;
+            font-weight:bold;
+        }
+    </style>
 </j:jelly>
