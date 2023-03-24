@@ -13,7 +13,7 @@ pipeline {
         // string(name: 'buildEnv', defaultValue: 'gradle', description: 'Build environment')
         // string(name: 'language', defaultValue: 'java', description: 'Programming language')
         // string(name: 'branch', defaultValue: 'rtyaes', description: 'Programming language')
-        string(name: 'commitHash', defaultValue: 'hash1231241421', description: 'Programming language')
+        string(name: 'commitHash', defaultValue: 'hash1231241421', description: 'Input commit hash to build')
     }
 
 
@@ -22,7 +22,7 @@ pipeline {
         stage('Check Commit Hash') {
             steps {
                 script {
-                    // Get the latest commit hash from the remote repository
+                    // Git Remote Repository에서 가장 최근 commit hash 값을 얻어옴. (기능 변경으로 인해 필요없는 코드임.)
                     // def latestCommit = sh(script: "git ls-remote ${GIT_URL} HEAD | awk '{print \$1}'", returnStdout: true).trim()
                     // echo "Latest commit hash: ${latestCommit}"
 
