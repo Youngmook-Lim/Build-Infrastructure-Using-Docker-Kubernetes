@@ -5,21 +5,13 @@ pipeline {
 
     environment {
         GIT_URL = "https://github.com/SonarSource/sonar-scanning-examples.git"
-        GIT_BRANCH = "master"
         BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
-        HOST_BIND_MOUNT = '/home/ubuntu/tmp/workspace'
-        SONAR_LOGIN = 'admin'
-        SONAR_PASSWORD = 'admin'
-        SONAR_PORT = 9000
-        JENKINS_PORT = 8080
-        AUTHENTICATION_ID = 'jenkins_api_token123'
     }
 
     parameters {
-        // string(name: 'gitUrl', defaultValue: 'test', description: 'Git URL')
         // string(name: 'buildEnv', defaultValue: 'gradle', description: 'Build environment')
         // string(name: 'language', defaultValue: 'java', description: 'Programming language')
-        // string(name: 'branch', defaultValue: 'rtyaes', description: 'Programming language')
+        string(name: 'GIT_BRANCH', defaultValue: 'master', description: 'Git branch')
         string(name: 'commitHash', defaultValue: 'hash1231241421', description: 'Input commit hash to build')
     }
 
@@ -74,6 +66,28 @@ pipeline {
         //         //     archiveArtifacts artifacts: '중복된 빌드의 아티팩트 위치', followSymlinks: false
         //         //     exit pipeline
         //         // }
+                }
+            }
+        }
+
+        stage('Set Environment Variables') {
+            steps {
+                script {
+                    withCredentials([
+                        string(credentialsId: 'sonar_login', variable: 'SONAR_LOGIN'),
+                        string(credentialsId: 'sonar_password', variable: 'SONAR_PASSWORD'),
+                        string(credentialsId: 'sonar_port', variable: 'SONAR_PORT'),
+                        string(credentialsId: 'jenkins_port', variable: 'JENKINS_PORT'),
+                        string(credentialsId: 'authentication_id', variable: 'AUTHENTICATION_ID'),
+                        string(credentialsId: 'host_bind_mount', variable: 'HOST_BIND_MOUNT')
+                    ]) {
+                        env.SONAR_LOGIN = "${SONAR_LOGIN}"
+                        env.SONAR_PASSWORD = "${SONAR_PASSWORD}"
+                        env.SONAR_PORT = "${SONAR_PORT}"
+                        env.JENKINS_PORT = "${JENKINS_PORT}"
+                        env.AUTHENTICATION_ID = "${AUTHENTICATION_ID}"
+                        env.HOST_BIND_MOUNT = "${HOST_BIND_MOUNT}"
+                    }
                 }
             }
         }
@@ -332,19 +346,17 @@ pipeline {
     post {
         always {
           script {
-              node("${buildAgent}") {
-                  sh 'docker stop sonarqube'
-                  cleanWs deleteDirs: true
-                  // dir("${env.WORKSPACE}/..") {
-                  //     sh 'find . -type d -name "pipeline-*_ws-cleanup_*" -exec rm -r {} \\;'
-                  // }
-                //   withEnv(['USER=root']) {
-                //       sh 'whoami'
-                //       sh 'cd ..'
-                //       sh 'pwd'
-                //       sh "find . -type d -name 'pipeline-*_ws-cleanup_*' -exec rm -r {} \\;"
-                //   }
-              }
+            sh 'docker stop sonarqube'
+            cleanWs deleteDirs: true
+            // dir("${env.WORKSPACE}/..") {
+            //     sh 'find . -type d -name "pipeline-*_ws-cleanup_*" -exec rm -r {} \\;'
+            // }
+        //   withEnv(['USER=root']) {
+        //       sh 'whoami'
+        //       sh 'cd ..'
+        //       sh 'pwd'
+        //       sh "find . -type d -name 'pipeline-*_ws-cleanup_*' -exec rm -r {} \\;"
+        //   }
           }
         }
     }
@@ -352,15 +364,13 @@ pipeline {
 
 def waitForSonarQube(sonarQubeUrl, timeout) {
     def running = false
-    def remainingTime = timeout
 
-    while (remainingTime > 0 && !running) {
+    for (int i = 0; i < timeout && !running; i += 10) {
         echo "Attempting to connect to SonarQube at ${sonarQubeUrl}"
         try {
             sh(script: "curl --max-time 10 --retry 0 --retry-max-time 10 --retry-connrefused --fail --silent ${sonarQubeUrl}/api/system/status", returnStdout: true)
             running = true
         } catch (Exception e) {
-            remainingTime -= 10
             sleep(10)
         }
     }

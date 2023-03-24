@@ -3,6 +3,8 @@ target
 # mvn hpi:run
 work
 
+.env
+
 # IntelliJ IDEA project files
 *.iml
 *.iws
