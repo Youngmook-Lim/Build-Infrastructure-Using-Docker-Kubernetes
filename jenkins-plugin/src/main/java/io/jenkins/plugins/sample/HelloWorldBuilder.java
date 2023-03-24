@@ -140,7 +140,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         String jobName = run.getParent().getDisplayName();
 
         // Gets the logged in username.
-        String currentUsername=jobName.split("-")[0];
+        String currentUsername=jobName;
 
         // check job name duplication
         TopLevelItem jobItem = jenkinsInstance.getItem(name);

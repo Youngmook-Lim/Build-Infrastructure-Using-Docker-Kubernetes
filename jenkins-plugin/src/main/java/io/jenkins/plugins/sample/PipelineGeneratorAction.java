@@ -23,7 +23,7 @@ public class PipelineGeneratorAction implements RootAction {
         TopLevelItem jobItem = Jenkins.get().getItem(getCurrentUserId()+"-pg");
         if (jobItem != null) {
 
-            return "job/"+getCurrentUserId()+"-pg/configure";
+            return "job/"+getCurrentUserId()+"/configure";
         }else{
             return "view/all/newJob";
         }
