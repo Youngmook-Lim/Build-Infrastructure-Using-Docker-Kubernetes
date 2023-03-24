@@ -82,7 +82,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         jenkinsPipeline += "  agent any\n";
         jenkinsPipeline += " environment {\n";
         jenkinsPipeline += "        GIT_URL = \"https://github.com/SonarSource/sonar-scanning-examples.git\"\n" ;
-        jenkinsPipeline += "        GIT_BRANCH = \"master\"\n" ;
+        jenkinsPipeline += "        GIT_Build = \"master\"\n" ;
         jenkinsPipeline += "        BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'\n" ;
         jenkinsPipeline += "        HOST_BIND_MOUNT = '/home/ubuntu/tmp/workspace'\n" ;
         jenkinsPipeline += "        SONAR_LOGIN = 'admin'\n" ;
@@ -220,5 +220,4 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
             return Messages.HelloWorldBuilder_DescriptorImpl_DisplayName();
         }
     }
-
 }
