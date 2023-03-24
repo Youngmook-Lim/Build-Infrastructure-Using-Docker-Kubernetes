@@ -38,15 +38,17 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     private final String buildEnv;
     private final String branch;
     private final String commitHash;
+    private final String buildPath;
 
     @DataBoundConstructor
-    public HelloWorldBuilder(String gitUrl, String name, String language, String buildEnv, String branch, String commitHash) {
+    public HelloWorldBuilder(String gitUrl, String name, String language, String buildEnv, String branch, String commitHash, String buildPath) {
         this.name = name;
         this.gitUrl = gitUrl;
         this.language = language;
         this.buildEnv = buildEnv;
         this.branch = branch;
         this.commitHash = commitHash;
+        this.buildPath = buildPath;
     }
 
     public String getName() {
@@ -71,6 +73,9 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     public String getCommitHash() {
         return commitHash;
     }
+    public String getBuildPath(){
+        return buildPath;
+    }
 
     public String generateScript() {
         String jenkinsPipeline = "pipeline {\n";
@@ -92,6 +97,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         jenkinsPipeline += "    string(name: 'language', defaultValue: '" + language + "', description: 'Programming language')\n";
         jenkinsPipeline += "    string(name: 'branch', defaultValue: '" + branch + "', description: 'Programming language')\n";
         jenkinsPipeline += "    string(name: 'commitHash', defaultValue: '" + commitHash + "', description: 'Programming language')\n";
+        jenkinsPipeline += "    string(name: 'buildPath', defaultValue: '" + buildPath + "', description: 'Programming language')\n";
         jenkinsPipeline += "  }\n";
         jenkinsPipeline += "  stages {\n";
         jenkinsPipeline += "    stage('Print Git URL') {\n";
@@ -119,8 +125,14 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         jenkinsPipeline += "        echo \"commit hash: ${params.commitHash}\"\n";
         jenkinsPipeline += "      }\n";
         jenkinsPipeline += "    }\n";
+        jenkinsPipeline += "    stage('Print Build Path') {\n";
+        jenkinsPipeline += "      steps {\n";
+        jenkinsPipeline += "        echo \"commit hash: ${params.buildPath}\"\n";
+        jenkinsPipeline += "      }\n";
+        jenkinsPipeline += "    }\n";
         jenkinsPipeline += "  }\n";
         jenkinsPipeline += "}";
+
         return jenkinsPipeline;
     }
 
@@ -128,7 +140,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     public void perform(Run<?, ?> run, FilePath workspace, EnvVars env, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
 
         Jenkins jenkinsInstance = Jenkins.get();
-        if(name.equals("") || gitUrl.equals("") || language.equals("") || buildEnv.equals("") || branch.equals("")) {
+        if(name.equals("") || gitUrl.equals("") || language.equals("") || buildEnv.equals("") || branch.equals("") || buildPath.equals("")) {
             listener.getLogger().println("The build failed. A required input value is empty.");
             WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
             job.makeDisabled(true);
@@ -170,6 +182,12 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     @Symbol("greet")
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
+        public FormValidation doCheckBuildPath(@QueryParameter String buildPath) throws IOException, ServletException {
+            if (buildPath.length() == 0) {
+                return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingGitURL());
+            }
+            return FormValidation.ok();
+        }
 
         public FormValidation doCheckGitUrl(@QueryParameter String gitUrl) throws IOException, ServletException {
             if (gitUrl.length() == 0) {

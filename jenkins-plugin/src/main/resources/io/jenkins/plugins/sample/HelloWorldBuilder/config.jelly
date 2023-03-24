@@ -9,21 +9,25 @@
         <div class="urlErr errTxt"></div>
     </f:entry>
     <f:entry title="${%Commit Hash}" field="commitHash">
-        <f:textbox />
+        <input type="text" name="commitHash" class="jenkins-input" onchange="handleChangeCommitHash(event)" />
     </f:entry>
     <f:entry title="${%Branch}" field="branch">
         <input type="text" name="branch" class="jenkins-input" onchange="handleChange(event,2)" />
         <div class="branchErr errTxt"></div>
     </f:entry>
+    <f:entry title="${%Build Path}" field="buildPath">
+        <input type="text" name="buildPath" class="jenkins-input" onchange="handleChange(event,3)" />
+        <div class="buildPathErr errTxt"></div>
+    </f:entry>
     <f:entry title="${%Language}" field="language">
-        <select class="jenkins-input" name="language" onchange="handleChange(event,3)" >
+        <select class="jenkins-input" name="language" onchange="handleChange(event,4)" >
             <option value="">Select Language</option>
             <option value="java">Java</option>
         </select>
         <div class="languageErr errTxt"></div>
     </f:entry>
     <f:entry title="${%Build Environment}" field="buildEnv">
-        <select class="jenkins-input" name="buildEnv" onchange="handleChange(event,4)" >
+        <select class="jenkins-input" name="buildEnv" onchange="handleChange(event,5)" >
             <option value="">Select Build Environment</option>
             <option value="maven">Maven</option>
             <option value="gradle">Gradle</option>
@@ -40,13 +44,14 @@
                 return;
             }
         });
-
-        const variables = [null, null, null, null, null];
-        const types = ["nameErr", "urlErr", "branchErr", "languageErr", "buildEnvErr"];
+        let commitHash = null;
+        const variables = [null, null, null, null, null, null];
+        const types = ["nameErr", "urlErr", "branchErr","buildPathErr", "languageErr", "buildEnvErr"];
         const errTexts = {
             "nameErr" : "Please set a job name",
             "urlErr" : "Please set a git URL",
             "branchErr" : "Please set a branch",
+            "buildPathErr" : "Please set a build path",
             "languageErr" : "Please select a language",
             "buildEnvErr" : "Please select a build environment",
         };
@@ -67,6 +72,10 @@
             }else{
                 document.getElementsByClassName(types[type])[0].innerText = "";
             }
+        }
+
+        function handleChangeCommitHash(event){
+            commitHash = event.target.value;
         }
     </script>
 
