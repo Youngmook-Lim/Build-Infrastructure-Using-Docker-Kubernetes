@@ -8,6 +8,9 @@
         <input type="text" name="gitUrl" class="jenkins-input" onchange="handleChange(event,1)" />
         <div class="urlErr errTxt"></div>
     </f:entry>
+    <f:entry title="${%Commit Hash}" field="commitHash">
+        <f:textbox />
+    </f:entry>
     <f:entry title="${%Branch}" field="branch">
         <input type="text" name="branch" class="jenkins-input" onchange="handleChange(event,2)" />
         <div class="branchErr errTxt"></div>
