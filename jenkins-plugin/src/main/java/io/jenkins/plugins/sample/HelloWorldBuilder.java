@@ -70,6 +70,17 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     public String generateScript() {
         String jenkinsPipeline = "pipeline {\n";
         jenkinsPipeline += "  agent any\n";
+        jenkinsPipeline += " environment {\n";
+        jenkinsPipeline += "        GIT_URL = \"https://github.com/SonarSource/sonar-scanning-examples.git\"\n" ;
+        jenkinsPipeline += "        GIT_BRANCH = \"master\"\n" ;
+        jenkinsPipeline += "        BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'\n" ;
+        jenkinsPipeline += "        HOST_BIND_MOUNT = '/home/ubuntu/tmp/workspace'\n" ;
+        jenkinsPipeline += "        SONAR_LOGIN = 'admin'\n" ;
+        jenkinsPipeline += "        SONAR_PASSWORD = 'admin'\n" ;
+        jenkinsPipeline += "        SONAR_PORT = 9000\n" ;
+        jenkinsPipeline += "        JENKINS_PORT = 8080\n" ;
+        jenkinsPipeline += "        AUTHENTICATION_ID = 'jenkins_api_token123'\n" ;
+        jenkinsPipeline += "    }\n";
         jenkinsPipeline += "  parameters {\n";
         jenkinsPipeline += "    string(name: 'gitUrl', defaultValue: '" + gitUrl + "', description: 'Git URL')\n";
         jenkinsPipeline += "    string(name: 'buildEnv', defaultValue: '" + buildEnv + "', description: 'Build environment')\n";
@@ -110,6 +121,16 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         String jobName = run.getParent().getDisplayName();
         // Gets the logged in username.
         String currentUsername=jobName.split("-")[0];
+
+        // check job name duplication
+        TopLevelItem jobItem = jenkinsInstance.getItem(name);
+        if (jobItem != null) {
+            listener.getLogger().println("Job with this name already exists: " + name);
+            WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
+            job.makeDisabled(true);
+            return;
+        }
+
 
 
         // Create a new Pipeline Job
