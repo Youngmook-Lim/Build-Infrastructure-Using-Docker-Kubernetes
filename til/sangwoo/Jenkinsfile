@@ -9,12 +9,25 @@ pipeline {
     }
 
     stages {
+
+        // 사용자로부터 commit hash를 입력받는 stage
+        stage('Get User Input') {
+            steps {
+                script {
+                    env.USER_COMMIT_HASH = input(id: 'userCommitHash', message: 'Please enter the commit hash:', parameters: [string(defaultValue: '', description: 'Commit hash', name: 'commitHash')])
+                }
+            }
+        }
+
         stage('Check Commit Hash') {
             steps {
                 script {
                     // Get the latest commit hash from the remote repository
-                    def latestCommit = sh(script: "git ls-remote ${GIT_URL} HEAD | awk '{print \$1}'", returnStdout: true).trim()
-                    echo "Latest commit hash: ${latestCommit}"
+                    // def latestCommit = sh(script: "git ls-remote ${GIT_URL} HEAD | awk '{print \$1}'", returnStdout: true).trim()
+                    // echo "Latest commit hash: ${latestCommit}"
+
+                    def latestCommit = env.USER_COMMIT_HASH.trim()
+                    echo "User provided commit hash: ${latestCommit}"
 
                     def buildStatusUrl = "${JENKINS_URL}/job/${JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]"
                     def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: AUTHENTICATION_ID, acceptType: 'APPLICATION_JSON')
@@ -24,7 +37,7 @@ pipeline {
                     for (build in buildStatusJson.allBuilds) {
                         def branchBuildInfo = build.actions.find { it.buildsByBranchName }
                         if (branchBuildInfo) {
-                            def commitInfo = branchBuildInfo.buildsByBranchName.values().find { it.revision.SHA1 == latestCommit }
+                            def commitInfo = branchBuildInfo.buildsByBranchName.values().find { it.revision.SHA1.startsWith(latestCommit) }
                             if (commitInfo && build.result == 'SUCCESS') {
                                 commitBuilt = true
                                 break
