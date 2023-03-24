@@ -1,3 +1,5 @@
+def targetCommit
+
 pipeline {
     agent {
         label 'agent'
@@ -12,22 +14,29 @@ pipeline {
         // string(name: 'gitUrl', defaultValue: 'test', description: 'Git URL')
         // string(name: 'buildEnv', defaultValue: 'gradle', description: 'Build environment')
         // string(name: 'language', defaultValue: 'java', description: 'Programming language')
-        // string(name: 'branch', defaultValue: 'rtyaes', description: 'Programming language')
-        string(name: 'commitHash', defaultValue: 'hash1231241421', description: 'Input commit hash to build')
+        string(name: 'branch', defaultValue: 'master', description: 'Input git branch name')
+        string(name: 'commitHash', defaultValue: '', description: 'Input commit hash to build')
     }
 
 
-    stages {
-
+    stages { 
         stage('Check Commit Hash') {
             steps {
                 script {
-                    // Git Remote Repository에서 가장 최근 commit hash 값을 얻어옴. (기능 변경으로 인해 필요없는 코드임.)
-                    // def latestCommit = sh(script: "git ls-remote ${GIT_URL} HEAD | awk '{print \$1}'", returnStdout: true).trim()
-                    // echo "Latest commit hash: ${latestCommit}"
-
-                    def latestCommit = params.commitHash.trim()
-                    echo "User provided commit hash: ${latestCommit}"
+                    targetCommit = params.commitHash.trim()
+                    if(targetCommit == '') { // commit hash 값이 입력되지 않았을 경우.
+                        // 사용자 지정 브랜치에서 가장 최근 commit hash 값을 얻어옴.
+                        targetCommit = sh(script: "git ls-remote ${GIT_URL} ${params.branch} | awk '{print \$1}'", returnStdout: true).trim()
+                        if(targetCommit == '') {    // 브랜치 이름이 존재하지 않을 경우 빌드 중지
+                            echo "Can't find target branch's commit hash"
+                            currentBuild.result = 'ABORTED'
+                            error("Build was aborted because the ${params.branch} branch doesn't exist.")
+                        }
+                        echo "targetCommit: ${targetCommit}"
+                        echo "Latest commit hash for branch ${params.branch}: ${targetCommit}"
+                    } else {
+                        echo "User provided commit hash: ${targetCommit}"
+                    }
 
                     def buildStatusUrl = "${env.JENKINS_URL}/job/${env.JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]"
                     def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: AUTHENTICATION_ID, acceptType: 'APPLICATION_JSON')
@@ -37,7 +46,7 @@ pipeline {
                     for (build in buildStatusJson.allBuilds) {
                         def branchBuildInfo = build.actions.find { it.buildsByBranchName }
                         if (branchBuildInfo) {
-                            def commitInfo = branchBuildInfo.buildsByBranchName.values().find { it.revision.SHA1.startsWith(latestCommit) }
+                            def commitInfo = branchBuildInfo.buildsByBranchName.values().find { it.revision.SHA1.startsWith(targetCommit) }
                             if (commitInfo && build.result == 'SUCCESS') {
                                 commitBuilt = true
                                 break
@@ -46,11 +55,11 @@ pipeline {
                     }
 
                     if (commitBuilt) {
-                        echo "Latest commit ${latestCommit} was built successfully. Stopping the build."
+                        echo "Target commit ${targetCommit} was built successfully. Stopping the build."
                         currentBuild.result = 'ABORTED'
-                        error("Build was aborted because the latest commit ${latestCommit} has already been built successfully.")
+                        error("Build was aborted because the target commit ${targetCommit} has already been built successfully.")
                     } else {
-                        echo "Latest commit ${latestCommit} was not built or not built successfully. Continuing the build."
+                        echo "Target commit ${targetCommit} was not built or not built successfully. Continuing the build."
                     }
                 }
             }
@@ -58,7 +67,21 @@ pipeline {
 
         stage('Clone Repository') {
             steps {
-                git branch: 'master', url: "${GIT_URL}"
+                script {
+                    // Replace 'BRANCH_NAME' with the desired branch name
+                    def BRANCH_NAME = params.branch
+
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: "${BRANCH_NAME}"]],
+                        doGenerateSubmoduleConfigurations: false,
+                        extensions: [[$class: 'CloneOption', noTags: false, shallow: false, depth: 0, reference: '']],
+                        submoduleCfg: [],
+                        userRemoteConfigs: [[url: "${GIT_URL}", refspec: "+refs/heads/${BRANCH_NAME}:refs/remotes/origin/${BRANCH_NAME}"]]
+                    ])
+
+                    sh "git checkout ${targetCommit}"
+                }
             }
         }
 
