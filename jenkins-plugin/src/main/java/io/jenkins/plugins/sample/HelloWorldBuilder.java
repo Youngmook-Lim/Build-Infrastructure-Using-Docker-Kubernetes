@@ -8,24 +8,27 @@ import hudson.model.*;
 import hudson.util.FormValidation;
 import hudson.tasks.Builder;
 import hudson.tasks.BuildStepDescriptor;
-import io.jenkins.cli.shaded.org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
-//import com.cloudbees.hudson.plugins.folder.Folder;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
 import hudson.model.TopLevelItem;
-import org.kohsuke.stapler.interceptor.RequirePOST;
 
+import java.util.*;
+import io.jenkins.cli.shaded.org.apache.commons.lang.StringUtils;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 import hudson.security.ProjectMatrixAuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.AuthorizationMatrixProperty;
+import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
+import com.michelin.cio.hudson.plugins.rolestrategy.Role;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 
 public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
@@ -99,19 +102,15 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
         Jenkins jenkinsInstance = Jenkins.get();
         if(name.equals("") || gitUrl.equals("") || language.equals("") || buildEnv.equals("") || branch.equals("")) {
-            listener.getLogger().println("build history에 실패했습니다. 필수 입력 값이 비어 있습니다.");
+            listener.getLogger().println("The build failed. A required input value is empty.");
             WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
             job.makeDisabled(true);
             return;
         }
         String jobName = run.getParent().getDisplayName();
-        // 로그인한 사용자 이름을 가져옵니다.
+        // Gets the logged in username.
         String currentUsername=jobName.split("-")[0];
 
-        WorkflowJob parentJob = (WorkflowJob) run.getParent();
-
-        // 상위 작업의 AuthorizationMatrixProperty 가져오기
-        AuthorizationMatrixProperty parentAuthMatrix = parentJob.getProperty(AuthorizationMatrixProperty.class);
 
         // Create a new Pipeline Job
         try {
@@ -119,20 +118,13 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
             if (item instanceof WorkflowJob) {
                 WorkflowJob job = (WorkflowJob) item;
                 job.setDefinition(new CpsFlowDefinition(generateScript(), true));
-
-                // 새 작업에 상위 작업의 AuthorizationMatrixProperty 설정
-                if (parentAuthMatrix != null) {
-                    AuthorizationMatrixProperty authMatrix = new AuthorizationMatrixProperty(parentAuthMatrix.getGrantedPermissions());
-                    job.addProperty(authMatrix);
-                }
-
                 job.save();
                 job.scheduleBuild2(0).waitForStart();
             } else {
-                listener.getLogger().println("새 파이프라인 작업을 생성하는데 실패했습니다.");
+                listener.getLogger().println("Creating a new pipeline job failed.");
             }
         } catch (Exception e) {
-            e.printStackTrace(listener.error("새 파이프라인 작업을 생성하는데 실패했습니다."));
+            e.printStackTrace(listener.error("Creating a new pipeline job failed."));
         }
     }
 
