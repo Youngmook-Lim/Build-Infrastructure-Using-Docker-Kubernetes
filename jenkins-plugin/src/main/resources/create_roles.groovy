@@ -14,12 +14,16 @@ def users = User.getAll()
 ItemRoleMap = rbas.getRoleMaps()[RoleType.Project]
 Set<Permission> userPermissions = Permission.getAll().toSet()
 
-users.each { user ->
+if(ItemRoleMap.getRoles().size()!=users.size()){
+    println "A new user has signed up. Renew authentication."
+    users.each { user ->
     def itemRolePattern = "${user.getId()}-.*"
     def itemRoleName = "${user.getId()}"
     def itemRole = new Role(itemRoleName, itemRolePattern, userPermissions)
     ItemRoleMap.addRole(itemRole)
     ItemRoleMap.assignRole(itemRole,user.getId())
+    }
+    jenkins.setAuthorizationStrategy(rbas)
+}else{
+    println "There are no new users."
 }
-
-jenkins.setAuthorizationStrategy(rbas)
