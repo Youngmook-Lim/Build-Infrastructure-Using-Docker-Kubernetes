@@ -1,7 +1,7 @@
-def buildAgent
-
 pipeline {
-    agent none
+    agent {
+        label 'agent'
+    }
 
     environment {
         GIT_URL = "https://github.com/SonarSource/sonar-scanning-examples.git"
@@ -75,32 +75,13 @@ pipeline {
         //     }
         // }
 
-        stage('Select agent') {
-            agent {
-                label 'agent'
-            }
-            steps {
-                script {
-                    echo '빌드 에이전트를 선택합니다.'
-                    buildAgent = env.NODE_NAME
-                    echo "선택한 에이전트는 ${buildAgent}입니다."
-                }
-            }
-        }
-
         stage('Git clone') {
-            agent {
-                label "${buildAgent}"
-            }
             steps {
                 git branch: "${GIT_BRANCH}", url: "${GIT_URL}"
             }
         }
 
         stage('Launch Sonarqube container') {
-            agent {
-                label "${buildAgent}"
-            }
             steps {
                 echo '정적검사를 위한 소나큐브 컨테이너를 띄웁니다.'
                 sh 'docker run --rm -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p ${SONAR_PORT}:9000 sonarqube:latest'
@@ -112,9 +93,6 @@ pipeline {
         }
 
         stage('Get Sonarqube token') {
-            agent {
-                label "${buildAgent}"
-            }
             steps {
                 echo '소나큐브 토큰을 받아 환경변수로 저장합니다.'
                 script {
@@ -154,9 +132,6 @@ pipeline {
         }
 
         stage('Sonarqube Scan') {
-            agent {
-                label "${buildAgent}"
-            }
             steps {
                 echo '소나큐브 정적검사를 실행합니다.'
                 dir("${BUILD_PATH}") {
@@ -186,9 +161,6 @@ pipeline {
         }
 
         stage('Sonarqube Quality Gate') {
-            agent {
-                label "${buildAgent}"
-            }
             steps {
                 script {
                     // Wait for analysis report to be processed by SonarQube
@@ -224,9 +196,6 @@ pipeline {
         }
 
         stage('Save Sonarqube Report') {
-            agent {
-                label "${buildAgent}"
-            }
             steps {
                 echo '소나큐브 결과를 파일로 저장합니다.'
                 script {
@@ -304,9 +273,6 @@ pipeline {
         }
 
         stage('Save Report') {
-            agent {
-                label "${buildAgent}"
-            }
             steps {
                 echo '저장된 결과파일을 archiveArtifacts로 저장합니다.'
                 archiveArtifacts artifacts: 'sonarqube-report.html', fingerprint: true
@@ -314,9 +280,6 @@ pipeline {
         }
 
         stage('Build') {
-            agent {
-                label "${buildAgent}"
-            }
             steps {
                 script {
                     echo '빌드 컨테이너에서 빌드를 진행합니다.'
@@ -339,36 +302,9 @@ pipeline {
             }
         }
 
-        stage('Stash artifacts in agent') {
-            agent {
-                label "${buildAgent}"
-            }
-            steps {
-                stash(name: 'artifacts', includes: "${BUILD_PATH}/build/libs/*")
-            }
-        }
-
-        stage('Unstash artifacts in master') {
-            agent {
-                label 'master'
-            }
-            steps {
-                unstash('artifacts')
-                sh "mkdir ${currentBuild.number}"
-                sh "mv ${BUILD_PATH}/build/libs/* ${currentBuild.number}"
-                script {
-                    def rootDir = BUILD_PATH.split('/')[0]
-                    sh "rm -r ${rootDir}"
-                }
-            }
-        }
-
         stage('deploy artifacts') {
-            agent {
-                label 'master'
-            }
             steps {
-                archiveArtifacts artifacts: "${currentBuild.number}/*", followSymlinks: false
+                archiveArtifacts artifacts: "${BUILD_PATH}/build/libs/*", followSymlinks: false
             }
         }
     }
@@ -376,7 +312,6 @@ pipeline {
     post {
         always {
           script {
-            if (buildAgent) {
               node("${buildAgent}") {
                   sh 'docker stop sonarqube'
                   cleanWs deleteDirs: true
@@ -390,7 +325,6 @@ pipeline {
                 //       sh "find . -type d -name 'pipeline-*_ws-cleanup_*' -exec rm -r {} \\;"
                 //   }
               }
-            }
           }
         }
     }
