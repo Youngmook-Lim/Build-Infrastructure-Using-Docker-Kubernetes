@@ -78,6 +78,7 @@ pipeline {
         stage('Git clone') {
             steps {
                 git branch: "${GIT_BRANCH}", url: "${GIT_URL}"
+                echo env.JENKINS_URL
             }
         }
 
@@ -312,19 +313,17 @@ pipeline {
     post {
         always {
           script {
-              node("${buildAgent}") {
-                  sh 'docker stop sonarqube'
-                  cleanWs deleteDirs: true
-                  // dir("${env.WORKSPACE}/..") {
-                  //     sh 'find . -type d -name "pipeline-*_ws-cleanup_*" -exec rm -r {} \\;'
-                  // }
-                //   withEnv(['USER=root']) {
-                //       sh 'whoami'
-                //       sh 'cd ..'
-                //       sh 'pwd'
-                //       sh "find . -type d -name 'pipeline-*_ws-cleanup_*' -exec rm -r {} \\;"
-                //   }
-              }
+            sh 'docker stop sonarqube'
+            cleanWs deleteDirs: true
+            // dir("${env.WORKSPACE}/..") {
+            //     sh 'find . -type d -name "pipeline-*_ws-cleanup_*" -exec rm -r {} \\;'
+            // }
+        //   withEnv(['USER=root']) {
+        //       sh 'whoami'
+        //       sh 'cd ..'
+        //       sh 'pwd'
+        //       sh "find . -type d -name 'pipeline-*_ws-cleanup_*' -exec rm -r {} \\;"
+        //   }
           }
         }
     }
@@ -332,15 +331,13 @@ pipeline {
 
 def waitForSonarQube(sonarQubeUrl, timeout) {
     def running = false
-    def remainingTime = timeout
 
-    while (remainingTime > 0 && !running) {
+    for (int i = 0; i < timeout && !running; i += 10) {
         echo "Attempting to connect to SonarQube at ${sonarQubeUrl}"
         try {
             sh(script: "curl --max-time 10 --retry 0 --retry-max-time 10 --retry-connrefused --fail --silent ${sonarQubeUrl}/api/system/status", returnStdout: true)
             running = true
         } catch (Exception e) {
-            remainingTime -= 10
             sleep(10)
         }
     }
