@@ -6,12 +6,6 @@ pipeline {
     environment {
         GIT_URL = "https://github.com/SonarSource/sonar-scanning-examples.git"
         BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
-        HOST_BIND_MOUNT = '/home/ubuntu/tmp/workspace'
-        SONAR_LOGIN = 'admin'
-        SONAR_PASSWORD = 'admin'
-        SONAR_PORT = 9000
-        JENKINS_PORT = 8080
-        AUTHENTICATION_ID = 'jenkins_api_token123'
     }
 
     parameters {
@@ -73,6 +67,28 @@ pipeline {
         //         //     exit pipeline
         //         // }
 
+                }
+            }
+        }
+
+        stage('Set Environment Variables') {
+            steps {
+                script {
+                    withCredentials([
+                        string(credentialsId: 'sonar_login', variable: 'SONAR_LOGIN'),
+                        string(credentialsId: 'sonar_password', variable: 'SONAR_PASSWORD'),
+                        string(credentialsId: 'sonar_port', variable: 'SONAR_PORT'),
+                        string(credentialsId: 'jenkins_port', variable: 'JENKINS_PORT'),
+                        string(credentialsId: 'authentication_id', variable: 'AUTHENTICATION_ID'),
+                        string(credentialsId: 'host_bind_mount', variable: 'HOST_BIND_MOUNT')
+                    ]) {
+                        env.SONAR_LOGIN = "${SONAR_LOGIN}"
+                        env.SONAR_PASSWORD = "${SONAR_PASSWORD}"
+                        env.SONAR_PORT = "${SONAR_PORT}"
+                        env.JENKINS_PORT = "${JENKINS_PORT}"
+                        env.AUTHENTICATION_ID = "${AUTHENTICATION_ID}"
+                        env.HOST_BIND_MOUNT = "${HOST_BIND_MOUNT}"
+                    }
                 }
             }
         }
