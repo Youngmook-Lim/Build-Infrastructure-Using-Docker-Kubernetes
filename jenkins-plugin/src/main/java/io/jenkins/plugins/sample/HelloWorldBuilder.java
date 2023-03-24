@@ -37,14 +37,16 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     private final String language;
     private final String buildEnv;
     private final String branch;
+    private final String commitHash;
 
     @DataBoundConstructor
-    public HelloWorldBuilder(String gitUrl, String name, String language, String buildEnv, String branch) {
+    public HelloWorldBuilder(String gitUrl, String name, String language, String buildEnv, String branch, String commitHash) {
         this.name = name;
         this.gitUrl = gitUrl;
         this.language = language;
         this.buildEnv = buildEnv;
         this.branch = branch;
+        this.commitHash = commitHash;
     }
 
     public String getName() {
@@ -66,6 +68,9 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     public String getBranch() {
         return branch;
     }
+    public String getCommitHash() {
+        return commitHash;
+    }
 
     public String generateScript() {
         String jenkinsPipeline = "pipeline {\n";
@@ -85,7 +90,8 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         jenkinsPipeline += "    string(name: 'gitUrl', defaultValue: '" + gitUrl + "', description: 'Git URL')\n";
         jenkinsPipeline += "    string(name: 'buildEnv', defaultValue: '" + buildEnv + "', description: 'Build environment')\n";
         jenkinsPipeline += "    string(name: 'language', defaultValue: '" + language + "', description: 'Programming language')\n";
-        jenkinsPipeline += "    string(name: 'language', defaultValue: '" + branch + "', description: 'Programming language')\n";
+        jenkinsPipeline += "    string(name: 'branch', defaultValue: '" + branch + "', description: 'Programming language')\n";
+        jenkinsPipeline += "    string(name: 'commitHash', defaultValue: '" + commitHash + "', description: 'Programming language')\n";
         jenkinsPipeline += "  }\n";
         jenkinsPipeline += "  stages {\n";
         jenkinsPipeline += "    stage('Print Git URL') {\n";
@@ -103,6 +109,16 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         jenkinsPipeline += "        echo \"Programming Language: ${params.language}\"\n";
         jenkinsPipeline += "      }\n";
         jenkinsPipeline += "    }\n";
+        jenkinsPipeline += "    stage('Print branch') {\n";
+        jenkinsPipeline += "      steps {\n";
+        jenkinsPipeline += "        echo \"branch: ${params.branch}\"\n";
+        jenkinsPipeline += "      }\n";
+        jenkinsPipeline += "    }\n";
+        jenkinsPipeline += "    stage('Print commit hash') {\n";
+        jenkinsPipeline += "      steps {\n";
+        jenkinsPipeline += "        echo \"commit hash: ${params.commitHash}\"\n";
+        jenkinsPipeline += "      }\n";
+        jenkinsPipeline += "    }\n";
         jenkinsPipeline += "  }\n";
         jenkinsPipeline += "}";
         return jenkinsPipeline;
@@ -118,7 +134,11 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
             job.makeDisabled(true);
             return;
         }
+
+        // commitHash가 없는 경우에는 latest 처리 => 이거 해결해야할지도??
+
         String jobName = run.getParent().getDisplayName();
+
         // Gets the logged in username.
         String currentUsername=jobName.split("-")[0];
 
