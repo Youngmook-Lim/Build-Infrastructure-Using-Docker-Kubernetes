@@ -315,7 +315,7 @@ pipeline {
             steps {
                 script {
                     echo '빌드 컨테이너에서 빌드를 진행합니다.'
-                    sh 'docker run --rm -v ${HOST_BIND_MOUNT}/${JOB_NAME}:/home/tmp/workspace/ openjdk:11 sh -c "cd /home/tmp/workspace/${BUILD_PATH}; sh gradlew clean build 2>&1 | tee jenkins_build_log"'
+                    sh 'docker run --rm -u 1000 -v ${HOST_BIND_MOUNT}/${JOB_NAME}:/home/tmp/workspace/ openjdk:11 sh -c "cd /home/tmp/workspace/${BUILD_PATH}; sh gradlew clean build 2>&1 | tee jenkins_build_log"'
                 }
             }
             post {
@@ -346,15 +346,6 @@ pipeline {
           script {
             sh 'docker stop sonarqube'
             cleanWs deleteDirs: true
-            // dir("${env.WORKSPACE}/..") {
-            //     sh 'find . -type d -name "pipeline-*_ws-cleanup_*" -exec rm -r {} \\;'
-            // }
-        //   withEnv(['USER=root']) {
-        //       sh 'whoami'
-        //       sh 'cd ..'
-        //       sh 'pwd'
-        //       sh "find . -type d -name 'pipeline-*_ws-cleanup_*' -exec rm -r {} \\;"
-        //   }
           }
         }
     }
