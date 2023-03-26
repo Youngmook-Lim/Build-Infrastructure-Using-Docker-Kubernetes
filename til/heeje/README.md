@@ -467,3 +467,63 @@ vi /home/ansible-playbooks/playbook-init-k8s-worker.yml
 ```
 ansible-playbook /home/ansible-playbooks/playbook-init-k8s-worker.yml
 ```
+
+## Worker Node를 Kubernetes Master에 연결
+
+### 1. Worker Node 구성
+
+- Kubernetes Master 초기화에서 저장했던 `kubeadm join` 사용
+
+```
+kubeadm join <master-ip>:<master-port> --token <token> --discovery-token-ca-cert-hash <hash>
+```
+
+### 에러 발생
+
+![Untitled (1).png](README_assets/93a2e1230695f3f7ce3a751d9cd2870e7c793dd2.png)
+
+- Docker 삭제 후 재설치
+
+```
+# if you have docker containers
+sudo docker stop $(sudo docker ps -a -q)
+sudo docker rm $(sudo docker ps -a -q)
+
+# uninstall the Docker package
+sudo apt-get purge docker-ce docker-ce-cli containerd.io
+
+# Remove any Docker directories that might still be present
+sudo rm -rf /var/lib/docker
+
+# Remove any Docker related configuration files
+sudo rm -rf /etc/docker
+
+# Restart the system
+sudo reboot
+
+# Update the system
+sudo apt-get update && sudo apt-get upgrade -y
+
+# Install Docker
+sudo apt-get install -y docker.io
+
+# Enable and start Docker
+sudo systemctl enable docker
+sudo systemctl start docker
+
+# Add Kubernetes repository
+sudo apt-get update && sudo apt-get install -y apt-transport-https curl
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+cat <<EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
+deb https://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+sudo apt-get update
+
+# Install Kubernetes components
+sudo apt-get install -y kubelet kubeadm kubectl
+
+# Disable swap
+sudo swapoff -a
+```
+
+- 이후 다시 `kubeadm join...` 실행
