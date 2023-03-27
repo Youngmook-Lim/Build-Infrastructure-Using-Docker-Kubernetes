@@ -6,7 +6,6 @@ pipeline {
     environment {
         GIT_URL = "https://github.com/SonarSource/sonar-scanning-examples.git"
         BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
-        AUTHENTICATION_ID = 'authentication_id'
     }
 
     parameters {
@@ -25,7 +24,6 @@ pipeline {
     // }
 
     stages {
-
         stage('Transfer Script to Agent') {
             steps {
                 script {
@@ -84,8 +82,8 @@ pipeline {
                         echo "User provided commit hash: ${targetCommit}"
                     }
 
-                    def buildStatusUrl = "${env.JENKINS_URL}/job/${env.JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]"
-                    def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: "${AUTHENTICATION_ID}", acceptType: 'APPLICATION_JSON')
+                    def buildStatusUrl = "${JENKINS_URL}/job/${JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]"
+                    def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: "authentication_id", acceptType: 'APPLICATION_JSON')
                     def buildStatusJson = readJSON text: buildStatusResponse.content
 
                     def commitBuilt = false
@@ -115,16 +113,13 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 script {
-                    // Replace 'BRANCH_NAME' with the desired branch name
-                    def BRANCH_NAME = GIT_BRANCH
-
                     checkout([
                         $class: 'GitSCM',
-                        branches: [[name: "${BRANCH_NAME}"]],
+                        branches: [[name: "${GIT_BRANCH}"]],
                         doGenerateSubmoduleConfigurations: false,
                         extensions: [[$class: 'CloneOption', noTags: false, shallow: false, depth: 0, reference: '']],
                         submoduleCfg: [],
-                        userRemoteConfigs: [[url: "${GIT_URL}", refspec: "+refs/heads/${BRANCH_NAME}:refs/remotes/origin/${BRANCH_NAME}"]]
+                        userRemoteConfigs: [[url: "${GIT_URL}", refspec: "+refs/heads/${GIT_BRANCH}:refs/remotes/origin/${GIT_BRANCH}"]]
                     ])
 
                     sh "git checkout ${targetCommit}"
