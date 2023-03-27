@@ -10,8 +10,8 @@ pipeline {
     }
 
     parameters {
-        // string(name: 'buildEnv', defaultValue: 'gradle', description: 'Build environment')
-        // string(name: 'language', defaultValue: 'java', description: 'Programming language')
+        string(name: 'BUILD_ENV', defaultValue: 'gradle', description: 'Build environment')
+        string(name: 'LANGUAGE', defaultValue: 'java', description: 'Programming language')
         string(name: 'GIT_BRANCH', defaultValue: 'master', description: 'Git branch')
         string(name: 'COMMIT_HASH', defaultValue: '', description: 'Input commit hash to build')
     }
@@ -25,6 +25,20 @@ pipeline {
     // }
 
     stages {
+
+        stage('Transfer Script to Agent') {
+            steps {
+                script {
+                    // Switch to the master agent
+                    node('master') {
+                        stash name: 'script_from_master', includes: 'script_on_master.sh'
+                    }
+
+                    // Switch back to the agent node and unstash the script file
+                    unstash 'script_from_master'
+                }
+            }
+        }
 
         stage('Set Environment Variables') {
             steps {
@@ -41,6 +55,12 @@ pipeline {
                         env.SONAR_PORT = "${SONAR_PORT}"
                         env.JENKINS_PORT = "${JENKINS_PORT}"
                         env.HOST_BIND_MOUNT = "${HOST_BIND_MOUNT}"
+
+                        // parameters -> env
+                        env.BUILD_ENV = "${params.BUILD_ENV}"
+                        env.LANGUAGE = "${params.LANGUAGE}"
+                        env.GIT_BRANCH = "${params.GIT_BRANCH}"
+                        env.COMMIT_HASH = "${params.COMMIT_HASH}"
                     }
                 }
             }
@@ -49,17 +69,17 @@ pipeline {
         stage('Check Commit Hash') {
             steps {
                 script {
-                    targetCommit = params.COMMIT_HASH.trim()
+                    targetCommit = "${COMMIT_HASH}".trim()
                     if(targetCommit == '') { // commit hash 값이 입력되지 않았을 경우.
                         // 사용자 지정 브랜치에서 가장 최근 commit hash 값을 얻어옴.
                         targetCommit = sh(script: "git ls-remote ${GIT_URL} ${params.GIT_BRANCH} | awk '{print \$1}'", returnStdout: true).trim()
                         if(targetCommit == '') {    // 브랜치 이름이 존재하지 않을 경우 빌드 중지
                             echo "Can't find target branch's commit hash"
                             currentBuild.result = 'ABORTED'
-                            error("Build was aborted because the ${params.GIT_BRANCH} branch doesn't exist.")
+                            error("Build was aborted because the ${GIT_BRANCH} branch doesn't exist.")
                         }
                         echo "targetCommit: ${targetCommit}"
-                        echo "Latest commit hash for branch ${params.GIT_BRANCH}: ${targetCommit}"
+                        echo "Latest commit hash for branch ${GIT_BRANCH}: ${targetCommit}"
                     } else {
                         echo "User provided commit hash: ${targetCommit}"
                     }
@@ -96,7 +116,7 @@ pipeline {
             steps {
                 script {
                     // Replace 'BRANCH_NAME' with the desired branch name
-                    def BRANCH_NAME = params.GIT_BRANCH
+                    def BRANCH_NAME = GIT_BRANCH
 
                     checkout([
                         $class: 'GitSCM',
