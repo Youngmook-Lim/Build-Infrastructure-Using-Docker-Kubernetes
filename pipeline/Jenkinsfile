@@ -13,7 +13,7 @@ pipeline {
         // string(name: 'buildEnv', defaultValue: 'gradle', description: 'Build environment')
         // string(name: 'language', defaultValue: 'java', description: 'Programming language')
         string(name: 'GIT_BRANCH', defaultValue: 'master', description: 'Git branch')
-        string(name: 'commitHash', defaultValue: '', description: 'Input commit hash to build')
+        string(name: 'COMMIT_HASH', defaultValue: '', description: 'Input commit hash to build')
     }
 
     // parameters {
@@ -49,7 +49,7 @@ pipeline {
         stage('Check Commit Hash') {
             steps {
                 script {
-                    targetCommit = params.commitHash.trim()
+                    targetCommit = params.COMMIT_HASH.trim()
                     if(targetCommit == '') { // commit hash 값이 입력되지 않았을 경우.
                         // 사용자 지정 브랜치에서 가장 최근 commit hash 값을 얻어옴.
                         targetCommit = sh(script: "git ls-remote ${GIT_URL} ${params.GIT_BRANCH} | awk '{print \$1}'", returnStdout: true).trim()
