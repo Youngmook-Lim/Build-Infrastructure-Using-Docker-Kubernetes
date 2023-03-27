@@ -6,12 +6,11 @@ pipeline {
     environment {
         GIT_URL = "https://github.com/SonarSource/sonar-scanning-examples.git"
         BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
-        AUTHENTICATION_ID = 'authentication_id'
     }
 
     parameters {
-        // string(name: 'buildEnv', defaultValue: 'gradle', description: 'Build environment')
-        // string(name: 'language', defaultValue: 'java', description: 'Programming language')
+        string(name: 'BUILD_ENV', defaultValue: 'gradle', description: 'Build environment')
+        string(name: 'LANGUAGE', defaultValue: 'java', description: 'Programming language')
         string(name: 'GIT_BRANCH', defaultValue: 'master', description: 'Git branch')
         string(name: 'COMMIT_HASH', defaultValue: '', description: 'Input commit hash to build')
     }
@@ -25,7 +24,6 @@ pipeline {
     // }
 
     stages {
-
         stage('Set Environment Variables') {
             steps {
                 script {
@@ -41,6 +39,12 @@ pipeline {
                         env.SONAR_PORT = "${SONAR_PORT}"
                         env.JENKINS_PORT = "${JENKINS_PORT}"
                         env.HOST_BIND_MOUNT = "${HOST_BIND_MOUNT}"
+
+                        // parameters -> env
+                        env.BUILD_ENV = "${params.BUILD_ENV}"
+                        env.LANGUAGE = "${params.LANGUAGE}"
+                        env.GIT_BRANCH = "${params.GIT_BRANCH}"
+                        env.COMMIT_HASH = "${params.COMMIT_HASH}"
                     }
                 }
             }
@@ -49,30 +53,30 @@ pipeline {
         stage('Check Commit Hash') {
             steps {
                 script {
-                    targetCommit = params.COMMIT_HASH.trim()
-                    if(targetCommit == '') { // commit hash 값이 입력되지 않았을 경우.
+                    env.TARGET_COMMIT = "${COMMIT_HASH}".trim()
+                    if("${TARGET_COMMIT}" == '') { // commit hash 값이 입력되지 않았을 경우.
                         // 사용자 지정 브랜치에서 가장 최근 commit hash 값을 얻어옴.
-                        targetCommit = sh(script: "git ls-remote ${GIT_URL} ${params.GIT_BRANCH} | awk '{print \$1}'", returnStdout: true).trim()
-                        if(targetCommit == '') {    // 브랜치 이름이 존재하지 않을 경우 빌드 중지
+                        env.TARGET_COMMIT = sh(script: "git ls-remote ${GIT_URL} ${params.GIT_BRANCH} | awk '{print \$1}'", returnStdout: true).trim()
+                        if("${TARGET_COMMIT}" == '') {    // 브랜치 이름이 존재하지 않을 경우 빌드 중지
                             echo "Can't find target branch's commit hash"
                             currentBuild.result = 'ABORTED'
-                            error("Build was aborted because the ${params.GIT_BRANCH} branch doesn't exist.")
+                            error("Build was aborted because the ${GIT_BRANCH} branch doesn't exist.")
                         }
-                        echo "targetCommit: ${targetCommit}"
-                        echo "Latest commit hash for branch ${params.GIT_BRANCH}: ${targetCommit}"
+                        echo "TARGET_COMMIT: ${TARGET_COMMIT}"
+                        echo "Latest commit hash for branch ${GIT_BRANCH}: ${TARGET_COMMIT}"
                     } else {
-                        echo "User provided commit hash: ${targetCommit}"
+                        echo "User provided commit hash: ${TARGET_COMMIT}"
                     }
 
-                    def buildStatusUrl = "${env.JENKINS_URL}/job/${env.JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]"
-                    def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: "${AUTHENTICATION_ID}", acceptType: 'APPLICATION_JSON')
+                    def buildStatusUrl = "${JENKINS_URL}/job/${JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]"
+                    def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: "authentication_id", acceptType: 'APPLICATION_JSON')
                     def buildStatusJson = readJSON text: buildStatusResponse.content
 
                     def commitBuilt = false
                     for (build in buildStatusJson.allBuilds) {
                         def branchBuildInfo = build.actions.find { it.buildsByBranchName }
                         if (branchBuildInfo) {
-                            def commitInfo = branchBuildInfo.buildsByBranchName.values().find { it.revision.SHA1.startsWith(targetCommit) }
+                            def commitInfo = branchBuildInfo.buildsByBranchName.values().find { it.revision.SHA1.startsWith("${TARGET_COMMIT}") }
                             if (commitInfo && build.result == 'SUCCESS') {
                                 commitBuilt = true
                                 break
@@ -81,11 +85,11 @@ pipeline {
                     }
 
                     if (commitBuilt) {
-                        echo "Target commit ${targetCommit} was built successfully. Stopping the build."
+                        echo "Target commit ${TARGET_COMMIT} was built successfully. Stopping the build."
                         currentBuild.result = 'ABORTED'
-                        error("Build was aborted because the target commit ${targetCommit} has already been built successfully.")
+                        error("Build was aborted because the target commit ${TARGET_COMMIT} has already been built successfully.")
                     } else {
-                        echo "Target commit ${targetCommit} was not built or not built successfully. Continuing the build."
+                        echo "Target commit ${TARGET_COMMIT} was not built or not built successfully. Continuing the build."
                     }
                 }
             }
@@ -95,23 +99,42 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 script {
-                    // Replace 'BRANCH_NAME' with the desired branch name
-                    def BRANCH_NAME = params.GIT_BRANCH
+                    dir("repo") {
+                        checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: "${GIT_BRANCH}"]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [[$class: 'CloneOption', noTags: false, shallow: false, depth: 0, reference: '']],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: "${GIT_URL}", refspec: "+refs/heads/${GIT_BRANCH}:refs/remotes/origin/${GIT_BRANCH}"]]
+                        ])
 
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: "${BRANCH_NAME}"]],
-                        doGenerateSubmoduleConfigurations: false,
-                        extensions: [[$class: 'CloneOption', noTags: false, shallow: false, depth: 0, reference: '']],
-                        submoduleCfg: [],
-                        userRemoteConfigs: [[url: "${GIT_URL}", refspec: "+refs/heads/${BRANCH_NAME}:refs/remotes/origin/${BRANCH_NAME}"]]
-                    ])
-
-                    sh "git checkout ${targetCommit}"
+                        sh "git checkout ${TARGET_COMMIT}"
+                    }
                 }
             }
         }
 
+        stage('Transfer Script to Agent') {
+            steps {
+                script {
+                    // Switch to the master agent
+                    node('master') {
+                        dir("${LANGUAGE}/${BUILD_ENV}") {
+                            stash name: "${LANGUAGE}-${BUILD_ENV}", includes: "*.sh"
+                        }
+                    }
+
+                    // Switch back to the agent node and unstash the script file
+                    dir('scripts') {
+                        unstash "${LANGUAGE}-${BUILD_ENV}"
+                        sh "pwd"
+                        sh "ls"
+                        sh "chmod +x *.sh"
+                    }
+                }
+            }
+        }
 
         stage('Launch Sonarqube container') {
             steps {
@@ -158,7 +181,6 @@ pipeline {
                     ''', returnStdout: true).trim()
 
                     env.SONAR_TOKEN = tokenOutput.substring(tokenOutput.lastIndexOf("Token: ") + 7)
-                    echo "Token: ${SONAR_TOKEN}"
                 }
             }
         }
@@ -166,27 +188,11 @@ pipeline {
         stage('Sonarqube Scan') {
             steps {
                 echo '소나큐브 정적검사를 실행합니다.'
-                dir("${BUILD_PATH}") {
+                dir("${WORKSPACE}") {
                     script {
-                        // Get the project key
-                        env.COMMIT_HASH = sh(script: "git ls-remote ${GIT_URL} HEAD | awk '{print \$1}'", returnStdout: true).trim()
-
-                        // Get the repository name
                         def repositoryName = sh(script: "basename -s .git ${GIT_URL}", returnStdout: true).trim()
 
-                        // Run the analysis
-                        sh """
-                            ./gradlew sonar \\
-                                -Dsonar.host.url=${SONAR_HOST} \\
-                                -Dsonar.login=${SONAR_LOGIN} \\
-                                -Dsonar.password=${SONAR_PASSWORD} \\
-                                -Dsonar.projectKey=${COMMIT_HASH} \\
-                                -Dsonar.projectName=${repositoryName} \\
-                                -Dsonar.projectVersion=1.0 \\
-                                -Dsonar.scm.disabled=true \\
-                                -Dsonar.analysis.mode=publish \\
-                                -Dsonar.verbose=true
-                        """
+                        sh "./scripts/sonar.sh ${SONAR_HOST} ${SONAR_LOGIN} ${SONAR_PASSWORD} ${TARGET_COMMIT} ${repositoryName} ${WORKSPACE}/repo/${BUILD_PATH}"
                     }
                 }
             }
@@ -200,7 +206,7 @@ pipeline {
                     def maxWaitTime = 60
                     def analysisStatus = 'NONE'
                     while (analysisStatus == 'NONE' && waitTime < maxWaitTime) {
-                        def jsonAnalysis = sh(script: "curl -s ${SONAR_HOST}/api/qualitygates/project_status?projectKey=${COMMIT_HASH} -u ${SONAR_LOGIN}:${SONAR_PASSWORD}", returnStdout: true).trim()
+                        def jsonAnalysis = sh(script: "curl -s ${SONAR_HOST}/api/qualitygates/project_status?projectKey=${TARGET_COMMIT} -u ${SONAR_LOGIN}:${SONAR_PASSWORD}", returnStdout: true).trim()
                         analysisStatus = new groovy.json.JsonSlurper().parseText(jsonAnalysis).projectStatus.status
                         if (analysisStatus == 'NONE') {
                             echo 'Analysis report is still being processed by SonarQube, waiting for 10 seconds...'
@@ -222,7 +228,6 @@ pipeline {
                         exit pipeline
                     }
                     echo "********** Quality gate status: ${analysisStatus} **********"
-                    echo '정적검사를 통과하였습니다.'
                 }
             }
         }
@@ -232,14 +237,19 @@ pipeline {
                 echo '소나큐브 결과를 파일로 저장합니다.'
                 script {
                     def metrics = 'ncloc,coverage,violations,complexity,bugs,vulnerabilities,code_smells,sqale_index,alert_status,reliability_rating,security_rating'
-                    def apiUrl = "${SONAR_HOST}/api/measures/component?component=${COMMIT_HASH}&metricKeys=${metrics}"
+
+                    def apiUrl = "${SONAR_HOST}/api/measures/component?component=${TARGET_COMMIT}&metricKeys=${metrics}"
+
                     def jsonData = sh(script: "curl -s -u ${SONAR_LOGIN}:${SONAR_PASSWORD} '${apiUrl}'", returnStdout: true).trim()
 
-                    def qualityGateApiUrl = "${SONAR_HOST}/api/qualitygates/project_status?projectKey=${COMMIT_HASH}"
+                    def qualityGateApiUrl = "${SONAR_HOST}/api/qualitygates/project_status?projectKey=${TARGET_COMMIT}"
+
                     def qualityGateJsonData = sh(script: "curl -s -u ${SONAR_LOGIN}:${SONAR_PASSWORD} '${qualityGateApiUrl}'", returnStdout: true).trim()
 
                     def reportData = readJSON text: jsonData
+
                     def qualityGateData = readJSON text: qualityGateJsonData
+
                     def qualityGateStatus = qualityGateData['projectStatus']['status']
 
                     def tableRows = reportData['component']['measures'].collect { measure ->
@@ -315,7 +325,10 @@ pipeline {
             steps {
                 script {
                     echo '빌드 컨테이너에서 빌드를 진행합니다.'
-                    sh 'docker run --rm -u 1000 -v ${HOST_BIND_MOUNT}/${JOB_NAME}:/home/tmp/workspace/ openjdk:11 sh -c "cd /home/tmp/workspace/${BUILD_PATH}; sh gradlew clean build 2>&1 | tee jenkins_build_log"'
+                    dir("${WORKSPACE}/scripts") {
+                        sh "./build.sh ${HOST_BIND_MOUNT} ${JOB_NAME} ${BUILD_PATH}"
+                    }
+
                 }
             }
             post {
@@ -336,7 +349,7 @@ pipeline {
 
         stage('deploy artifacts') {
             steps {
-                archiveArtifacts artifacts: "${BUILD_PATH}/build/libs/*", followSymlinks: false
+                archiveArtifacts artifacts: "repo/${BUILD_PATH}/build/libs/*", followSymlinks: false
             }
         }
     }
