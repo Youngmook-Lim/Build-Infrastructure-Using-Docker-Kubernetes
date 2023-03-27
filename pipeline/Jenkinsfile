@@ -6,13 +6,14 @@ pipeline {
     environment {
         GIT_URL = "https://github.com/SonarSource/sonar-scanning-examples.git"
         BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
+        AUTHENTICATION_ID = 'authentication_id'
     }
 
     parameters {
         // string(name: 'buildEnv', defaultValue: 'gradle', description: 'Build environment')
         // string(name: 'language', defaultValue: 'java', description: 'Programming language')
         string(name: 'GIT_BRANCH', defaultValue: 'master', description: 'Git branch')
-        string(name: 'commitHash', defaultValue: 'hash1231241421', description: 'Input commit hash to build')
+        string(name: 'COMMIT_HASH', defaultValue: '', description: 'Input commit hash to build')
     }
 
     // parameters {
@@ -25,10 +26,30 @@ pipeline {
 
     stages {
 
+        stage('Set Environment Variables') {
+            steps {
+                script {
+                    withCredentials([
+                        string(credentialsId: 'sonar_login', variable: 'SONAR_LOGIN'),
+                        string(credentialsId: 'sonar_password', variable: 'SONAR_PASSWORD'),
+                        string(credentialsId: 'sonar_port', variable: 'SONAR_PORT'),
+                        string(credentialsId: 'jenkins_port', variable: 'JENKINS_PORT'),
+                        string(credentialsId: 'host_bind_mount', variable: 'HOST_BIND_MOUNT'),
+                    ]) {
+                        env.SONAR_LOGIN = "${SONAR_LOGIN}"
+                        env.SONAR_PASSWORD = "${SONAR_PASSWORD}"
+                        env.SONAR_PORT = "${SONAR_PORT}"
+                        env.JENKINS_PORT = "${JENKINS_PORT}"
+                        env.HOST_BIND_MOUNT = "${HOST_BIND_MOUNT}"
+                    }
+                }
+            }
+        }
+
         stage('Check Commit Hash') {
             steps {
                 script {
-                    targetCommit = params.commitHash.trim()
+                    targetCommit = params.COMMIT_HASH.trim()
                     if(targetCommit == '') { // commit hash 값이 입력되지 않았을 경우.
                         // 사용자 지정 브랜치에서 가장 최근 commit hash 값을 얻어옴.
                         targetCommit = sh(script: "git ls-remote ${GIT_URL} ${params.GIT_BRANCH} | awk '{print \$1}'", returnStdout: true).trim()
@@ -44,7 +65,7 @@ pipeline {
                     }
 
                     def buildStatusUrl = "${env.JENKINS_URL}/job/${env.JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]"
-                    def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: AUTHENTICATION_ID, acceptType: 'APPLICATION_JSON')
+                    def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: "${AUTHENTICATION_ID}", acceptType: 'APPLICATION_JSON')
                     def buildStatusJson = readJSON text: buildStatusResponse.content
 
                     def commitBuilt = false
@@ -70,27 +91,6 @@ pipeline {
             }
         }
 
-        stage('Set Environment Variables') {
-            steps {
-                script {
-                    withCredentials([
-                        string(credentialsId: 'sonar_login', variable: 'SONAR_LOGIN'),
-                        string(credentialsId: 'sonar_password', variable: 'SONAR_PASSWORD'),
-                        string(credentialsId: 'sonar_port', variable: 'SONAR_PORT'),
-                        string(credentialsId: 'jenkins_port', variable: 'JENKINS_PORT'),
-                        string(credentialsId: 'authentication_id', variable: 'AUTHENTICATION_ID'),
-                        string(credentialsId: 'host_bind_mount', variable: 'HOST_BIND_MOUNT')
-                    ]) {
-                        env.SONAR_LOGIN = "${SONAR_LOGIN}"
-                        env.SONAR_PASSWORD = "${SONAR_PASSWORD}"
-                        env.SONAR_PORT = "${SONAR_PORT}"
-                        env.JENKINS_PORT = "${JENKINS_PORT}"
-                        env.AUTHENTICATION_ID = "${AUTHENTICATION_ID}"
-                        env.HOST_BIND_MOUNT = "${HOST_BIND_MOUNT}"
-                    }
-                }
-            }
-        }
 
         stage('Clone Repository') {
             steps {
