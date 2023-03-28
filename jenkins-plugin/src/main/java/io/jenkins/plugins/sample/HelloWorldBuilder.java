@@ -15,20 +15,12 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 
 import javax.servlet.ServletException;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
 import hudson.model.TopLevelItem;
-
-import java.util.*;
-import io.jenkins.cli.shaded.org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.interceptor.RequirePOST;
-import hudson.security.ProjectMatrixAuthorizationStrategy;
-import hudson.security.Permission;
-import hudson.security.AuthorizationMatrixProperty;
-import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
-import com.michelin.cio.hudson.plugins.rolestrategy.Role;
-import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 
 public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
@@ -77,62 +69,33 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         return buildPath;
     }
 
-    public String generateScript() {
-        String jenkinsPipeline = "pipeline {\n";
+    public String generateScript(){
+        String jenkinsPipeline = "";
+        jenkinsPipeline = "pipeline {\n";
         jenkinsPipeline += "  agent any\n";
-        jenkinsPipeline += " environment {\n";
-        jenkinsPipeline += "        GIT_URL = \"https://github.com/SonarSource/sonar-scanning-examples.git\"\n" ;
-        jenkinsPipeline += "        GIT_Build = \"master\"\n" ;
-        jenkinsPipeline += "        BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'\n" ;
-        jenkinsPipeline += "        HOST_BIND_MOUNT = '/home/ubuntu/tmp/workspace'\n" ;
-        jenkinsPipeline += "        SONAR_LOGIN = 'admin'\n" ;
-        jenkinsPipeline += "        SONAR_PASSWORD = 'admin'\n" ;
-        jenkinsPipeline += "        SONAR_PORT = 9000\n" ;
-        jenkinsPipeline += "        JENKINS_PORT = 8080\n" ;
-        jenkinsPipeline += "        AUTHENTICATION_ID = 'jenkins_api_token123'\n" ;
+        jenkinsPipeline += "    environment {\n";
+        jenkinsPipeline += "        GIT_URL = \"" + gitUrl + "\"\n" ;
+        jenkinsPipeline += "        BUILD_PATH = '"+buildPath+"'\n";
         jenkinsPipeline += "    }\n";
         jenkinsPipeline += "  parameters {\n";
-        jenkinsPipeline += "    string(name: 'gitUrl', defaultValue: '" + gitUrl + "', description: 'Git URL')\n";
-        jenkinsPipeline += "    string(name: 'buildEnv', defaultValue: '" + buildEnv + "', description: 'Build environment')\n";
-        jenkinsPipeline += "    string(name: 'language', defaultValue: '" + language + "', description: 'Programming language')\n";
-        jenkinsPipeline += "    string(name: 'branch', defaultValue: '" + branch + "', description: 'Programming language')\n";
-        jenkinsPipeline += "    string(name: 'commitHash', defaultValue: '" + commitHash + "', description: 'Programming language')\n";
-        jenkinsPipeline += "    string(name: 'buildPath', defaultValue: '" + buildPath + "', description: 'Programming language')\n";
+        jenkinsPipeline += "    string(name: 'BUILD_ENV', defaultValue: '" + buildEnv + "', description: 'Build environment')\n";
+        jenkinsPipeline += "    string(name: 'LANGUAGE', defaultValue: '" + language + "', description: 'Programming language')\n";
+        jenkinsPipeline += "    string(name: 'GIT_BRANCH', defaultValue: '" + branch + "', description: 'Programming language')\n";
+        jenkinsPipeline += "    string(name: 'COMMIT_HASH', defaultValue: '" + commitHash + "', description: 'Programming language')\n";
         jenkinsPipeline += "  }\n";
-        jenkinsPipeline += "  stages {\n";
-        jenkinsPipeline += "    stage('Print Git URL') {\n";
-        jenkinsPipeline += "      steps {\n";
-        jenkinsPipeline += "        echo \"Git URL: ${params.gitUrl}\"\n";
-        jenkinsPipeline += "      }\n";
-        jenkinsPipeline += "    }\n";
-        jenkinsPipeline += "    stage('Print Build Environment') {\n";
-        jenkinsPipeline += "      steps {\n";
-        jenkinsPipeline += "        echo \"Build Environment: ${params.buildEnv}\"\n";
-        jenkinsPipeline += "      }\n";
-        jenkinsPipeline += "    }\n";
-        jenkinsPipeline += "    stage('Print Programming Language') {\n";
-        jenkinsPipeline += "      steps {\n";
-        jenkinsPipeline += "        echo \"Programming Language: ${params.language}\"\n";
-        jenkinsPipeline += "      }\n";
-        jenkinsPipeline += "    }\n";
-        jenkinsPipeline += "    stage('Print branch') {\n";
-        jenkinsPipeline += "      steps {\n";
-        jenkinsPipeline += "        echo \"branch: ${params.branch}\"\n";
-        jenkinsPipeline += "      }\n";
-        jenkinsPipeline += "    }\n";
-        jenkinsPipeline += "    stage('Print commit hash') {\n";
-        jenkinsPipeline += "      steps {\n";
-        jenkinsPipeline += "        echo \"commit hash: ${params.commitHash}\"\n";
-        jenkinsPipeline += "      }\n";
-        jenkinsPipeline += "    }\n";
-        jenkinsPipeline += "    stage('Print Build Path') {\n";
-        jenkinsPipeline += "      steps {\n";
-        jenkinsPipeline += "        echo \"commit hash: ${params.buildPath}\"\n";
-        jenkinsPipeline += "      }\n";
-        jenkinsPipeline += "    }\n";
-        jenkinsPipeline += "  }\n";
-        jenkinsPipeline += "}";
 
+        try (BufferedReader br = new BufferedReader(new FileReader("src/main/resources/pipeline.txt"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                jenkinsPipeline += (line + "\n");
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+            System.out.println(e);
+        }
+
+        System.out.println(jenkinsPipeline);
         return jenkinsPipeline;
     }
 
