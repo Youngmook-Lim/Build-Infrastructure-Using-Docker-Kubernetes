@@ -22,18 +22,18 @@ if(roleLength != userLength){
     println "A new user has signed up. Renew authentication."
     users.each { user ->
         def itemRolePattern = "${user.getId()}.*"
-        def itemRoleName = "${user.getId()}"
-        def itemRole = new Role(itemRoleName, itemRolePattern, userPermissions)
+        def userName = "${user.getId()}"
+        def itemRole = new Role(userName, itemRolePattern, userPermissions)
         ItemRoleMap.addRole(itemRole)
         ItemRoleMap.assignRole(itemRole,user.getId())
-        def jobName= itemRole+"-pipelineGenerator"
+        def jobName= userName+"-PipelineGenerator"
         // Check if freestyle job exists with user's ID as name
         if (!jenkins.getItemByFullName(jobName, FreeStyleProject.class)) {
             // Create new freestyle job
             def job = jenkins.createProject(FreeStyleProject.class, jobName)
             job.setDescription("Pipeline Generator입니다. Pipeline Generator build step을 수정 후 빌드하세요.")
             job.save()
-            println itemRoleName +" has signed up"
+            println userName +" has signed up"
         }
     }
     jenkins.setAuthorizationStrategy(rbas)

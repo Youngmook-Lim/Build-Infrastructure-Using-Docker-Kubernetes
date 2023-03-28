@@ -21,7 +21,7 @@ public class PipelineGeneratorAction implements RootAction {
     @Override
     public String getUrlName() {
         TopLevelItem jobItem = Jenkins.get().getItem(getCurrentUserId());
-        return "job/"+getCurrentUserId()+"-pipelineGenerator"+"/configure";
+        return "job/"+getCurrentUserId()+"-PipelineGenerator/configure";
 //        if (jobItem != null) {
 //            return "job/"+getCurrentUserId()+"/configure";
 //        }else{
