@@ -41,9 +41,6 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         this.branch = branch;
         this.commitHash = commitHash;
         this.buildPath = buildPath;
-
-        System.out.println("language"+language);
-        System.out.println("buildEnv"+buildEnv);
     }
 
     public String getName() {
