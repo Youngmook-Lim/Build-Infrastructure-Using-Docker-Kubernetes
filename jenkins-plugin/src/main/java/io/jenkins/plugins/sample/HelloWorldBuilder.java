@@ -21,6 +21,7 @@ import java.io.IOException;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
 import hudson.model.TopLevelItem;
+import com.cloudbees.hudson.plugins.folder.Folder;
 
 public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
@@ -99,6 +100,13 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         return jenkinsPipeline;
     }
 
+    private Folder getUserFolder(String username) throws IOException {
+        Jenkins jenkinsInstance = Jenkins.get();
+        TopLevelItem folderItem = jenkinsInstance.getItem(username+"-folder");
+        return (Folder) folderItem;
+    }
+
+
     @Override
     public void perform(Run<?, ?> run, FilePath workspace, EnvVars env, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
 
@@ -115,20 +123,28 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         String jobName = run.getParent().getDisplayName();
 
         // Gets the logged in username.
-        String currentUsername=jobName;
+        String currentUsername=jobName.split("-")[0];
+        Folder userFolder;
+        try {
+            userFolder = getUserFolder(currentUsername);
+        } catch (IOException e) {
+            e.printStackTrace(listener.error("사용자 폴더를 가져오거나 생성하는데 실패했습니다."));
+            return;
+        }
 
         // check job name duplication
-        TopLevelItem jobItem = jenkinsInstance.getItem(name);
+        TopLevelItem jobItem = userFolder.getItem(currentUsername+"-"+name);
         if (jobItem != null) {
             listener.getLogger().println("Job with this name already exists: " + name);
-            WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
-            job.makeDisabled(true);
+//            WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
+//            job.makeDisabled(true);
+            // ???
             return;
         }
 
         // Create a new Pipeline Job
         try {
-            TopLevelItem item = jenkinsInstance.createProject(WorkflowJob.class, currentUsername+"-"+name);
+            TopLevelItem item = userFolder.createProject(WorkflowJob.class, currentUsername+"-"+name);
             if (item instanceof WorkflowJob) {
                 WorkflowJob job = (WorkflowJob) item;
                 job.setDefinition(new CpsFlowDefinition(generateScript(), true));
