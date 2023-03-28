@@ -23,14 +23,14 @@
         <select class="jenkins-input" name="language" onchange="handleChange(event,4)" >
             <option value="">Select Language</option>
             <option value="java">Java</option>
+            <option value="c">C</option>
+            <option value="c++">C++</option>
         </select>
         <div class="languageErr errTxt"></div>
     </f:entry>
     <f:entry title="${%Build Environment}" field="buildEnv">
-        <select class="jenkins-input" name="buildEnv" onchange="handleChange(event,5)" >
+        <select class="jenkins-input buildEnvSelect" name="buildEnv" onchange="handleChange(event,5)" >
             <option value="">Select Build Environment</option>
-            <option value="maven">Maven</option>
-            <option value="gradle">Gradle</option>
         </select>
         <div class="buildEnvErr errTxt"></div>
     </f:entry>
@@ -44,6 +44,20 @@
                 return;
             }
         });
+
+        const buildEnvObject = {
+            "java" : [
+                {"Maven" : "maven"},
+                {"Gradle" : "gradle"},
+            ],
+            "c" : [
+                {"Temp C Build Env" : "cbuildenv"}
+            ],
+            "c++" : [
+                {"Temp C++ Build Env" : "c++buildenv"}
+            ]
+        }
+
         let commitHash = null;
         const variables = [null, null, null, null, null, null];
         const types = ["nameErr", "urlErr", "branchErr","buildPathErr", "languageErr", "buildEnvErr"];
@@ -71,7 +85,31 @@
                 document.getElementsByClassName(types[type])[0].innerText = errTexts[types[type]];
             }else{
                 document.getElementsByClassName(types[type])[0].innerText = "";
+                if(type === 4) setBuildEnvOptions(event.target.value);
             }
+        }
+
+        function setBuildEnvOptions(selectedLang){
+            const buildList = buildEnvObject[selectedLang];
+            const select = document.getElementsByClassName("buildEnvSelect")[0];
+            const defaultOp = document.createElement("option");
+
+            select.innerHTML = "";
+            defaultOp.innerText = "Select Build Environment";
+            defaultOp.value="";
+            select.appendChild(defaultOp);
+
+            buildList.map(meta => {
+                const option = document.createElement("option");
+                const key = Object.keys(meta)[0];
+                const value = meta[key];
+
+                option.innerText = key;
+                option.value = value;
+
+                select.appendChild(option);
+            });
+
         }
 
         function handleChangeCommitHash(event){
