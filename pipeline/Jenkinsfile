@@ -3,9 +3,20 @@ pipeline {
         label 'agent'
     }
 
+    tools {
+        maven 'maven'
+    }
+
     environment {
         GIT_URL = "https://github.com/SonarSource/sonar-scanning-examples.git"
-        BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
+        // BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
+        BUILD_PATH = 'sonarqube-scanner-maven/maven-basic'
+
+        // GRADLE 빌드 시 .jar 파일이 있는 위치
+        // BUILD_RESULT_PATH = 'build/libs/*.jar'
+
+        // MAVEN 빌드 시 .jar 파일이 있는 위치
+        BUILD_RESULT_PATH = 'target/*.jar'
     }
 
     parameters {
@@ -120,7 +131,7 @@ pipeline {
                 script {
                     // Switch to the master agent
                     node('master') {
-                        dir("${LANGUAGE}/${BUILD_ENV}") {
+                        dir("../scripts/${LANGUAGE}/${BUILD_ENV}") {
                             stash name: "${LANGUAGE}-${BUILD_ENV}", includes: "*.sh"
                         }
                     }
@@ -152,7 +163,7 @@ pipeline {
                 echo '소나큐브 토큰을 받아 환경변수로 저장합니다.'
                 script {
                     def tokenOutput = sh(script: '''
-                        USER_LOGIN=admin
+                        USER_LOGIN=${SONAR_LOGIN}
                         TOKEN_NAME="My Jenkins Token"
                         MAX_RETRIES=12
                         RETRY_INTERVAL=5
@@ -349,7 +360,7 @@ pipeline {
 
         stage('deploy artifacts') {
             steps {
-                archiveArtifacts artifacts: "repo/${BUILD_PATH}/build/libs/*", followSymlinks: false
+                archiveArtifacts artifacts: "repo/${BUILD_PATH}/${BUILD_RESULT_PATH}", followSymlinks: false
             }
         }
     }
