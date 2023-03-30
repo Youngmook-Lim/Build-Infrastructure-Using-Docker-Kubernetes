@@ -1,6 +1,6 @@
 #!/bin/sh
 
-FILE="build.gradle"
+FILE=$1
 
 if ! grep -q "id ['\"]org.sonarqube['\"] version ['\"].*['\"]" "$FILE"; then
     echo "Applying sonarqube plugin..."
