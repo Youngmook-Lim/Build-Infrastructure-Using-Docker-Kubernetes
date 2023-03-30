@@ -9,18 +9,18 @@ pipeline {
 
     environment {
         GIT_URL = "https://github.com/SonarSource/sonar-scanning-examples.git"
-        // BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
+        BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
         // BUILD_PATH = 'sonarqube-scanner-maven/maven-basic'
-        BUILD_PATH = 'sonarqube-scanner-msbuild/CSharpProject/SomeConsoleApplication'
+        // BUILD_PATH = 'sonarqube-scanner-msbuild/CSharpProject/SomeConsoleApplication'
 
         // GRADLE 빌드 시 .jar 파일이 있는 위치
-        // BUILD_RESULT_PATH = 'build/libs/*.jar'
+        BUILD_RESULT_PATH = 'build/libs/*.jar'
 
         // MAVEN 빌드 시 .jar 파일이 있는 위치
         // BUILD_RESULT_PATH = 'target/*.jar'
 
         // MSBuild
-        BUILD_RESULT_PATH = 'target/*.dll'
+        // BUILD_RESULT_PATH = 'target/*.dll'
     }
 
     parameters {
