@@ -10,18 +10,22 @@ pipeline {
     environment {
         GIT_URL = "https://github.com/SonarSource/sonar-scanning-examples.git"
         // BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
-        BUILD_PATH = 'sonarqube-scanner-maven/maven-basic'
+        // BUILD_PATH = 'sonarqube-scanner-maven/maven-basic'
+        BUILD_PATH = 'sonarqube-scanner-msbuild/CSharpProject/SomeConsoleApplication'
 
         // GRADLE 빌드 시 .jar 파일이 있는 위치
         // BUILD_RESULT_PATH = 'build/libs/*.jar'
 
         // MAVEN 빌드 시 .jar 파일이 있는 위치
-        BUILD_RESULT_PATH = 'target/*.jar'
+        // BUILD_RESULT_PATH = 'target/*.jar'
+
+        // MSBuild
+        BUILD_RESULT_PATH = 'target/*.dll'
     }
 
     parameters {
-        string(name: 'BUILD_ENV', defaultValue: 'gradle', description: 'Build environment')
-        string(name: 'LANGUAGE', defaultValue: 'java', description: 'Programming language')
+        string(name: 'BUILD_ENV', defaultValue: 'msbuild', description: 'Build environment')
+        string(name: 'LANGUAGE', defaultValue: 'csharp', description: 'Programming language')
         string(name: 'GIT_BRANCH', defaultValue: 'master', description: 'Git branch')
         string(name: 'COMMIT_HASH', defaultValue: '', description: 'Input commit hash to build')
     }
@@ -161,7 +165,7 @@ pipeline {
                     def tokenOutput = sh(script: '''
                         USER_LOGIN=${SONAR_LOGIN}
                         TOKEN_NAME="My Jenkins Token"
-                        MAX_RETRIES=12
+                        MAX_RETRIES=16
                         RETRY_INTERVAL=5
 
                         for i in $(seq 1 $MAX_RETRIES); do
@@ -199,7 +203,7 @@ pipeline {
                     script {
                         def repositoryName = sh(script: "basename -s .git ${GIT_URL}", returnStdout: true).trim()
 
-                        sh "./scripts/sonar.sh ${SONAR_HOST} ${SONAR_LOGIN} ${SONAR_PASSWORD} ${TARGET_COMMIT} ${repositoryName} ${WORKSPACE}/repo/${BUILD_PATH}"
+                        sh "./scripts/sonar.sh ${SONAR_HOST} ${SONAR_LOGIN} ${SONAR_PASSWORD} ${TARGET_COMMIT} ${repositoryName} ${WORKSPACE}/repo/${BUILD_PATH} ${HOST_BIND_MOUNT}/${JOB_NAME}/repo/${BUILD_PATH}"
                     }
                 }
             }
