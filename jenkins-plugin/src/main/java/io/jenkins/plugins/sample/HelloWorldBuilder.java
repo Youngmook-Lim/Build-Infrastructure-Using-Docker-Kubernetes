@@ -33,6 +33,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     private final String commitHash;
     private final String buildPath;
 
+
     @DataBoundConstructor
     public HelloWorldBuilder(String gitUrl, String name, String language, String buildEnv, String branch, String commitHash, String buildPath) {
         this.name = name;
@@ -75,8 +76,9 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         jenkinsPipeline = "pipeline {\n";
         jenkinsPipeline += "  agent any\n";
         jenkinsPipeline += "    environment {\n";
-        jenkinsPipeline += "        GIT_URL = \"" + gitUrl + "\"\n" ;
+        jenkinsPipeline += "        GIT_URL = \"" + gitUrl + "\"\n";
         jenkinsPipeline += "        BUILD_PATH = '"+buildPath+"'\n";
+        jenkinsPipeline += "        BUILD_RESULT_PATH = '"+ getBuildResPath(buildEnv) +"'\n";
         jenkinsPipeline += "    }\n";
         jenkinsPipeline += "  parameters {\n";
         jenkinsPipeline += "    string(name: 'BUILD_ENV', defaultValue: '" + buildEnv + "', description: 'Build environment')\n";
@@ -98,6 +100,16 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
         System.out.println(jenkinsPipeline);
         return jenkinsPipeline;
+    }
+
+    private String getBuildResPath(String buildEnv) {
+        switch (buildEnv){
+            case "maven":
+                return "build/libs/*.jar";
+            case "gradle":
+                return "target/*.jar";
+        }
+        return "nothing";
     }
 
     private Folder getUserFolder(String username) throws IOException {
