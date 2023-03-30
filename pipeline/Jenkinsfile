@@ -353,7 +353,8 @@ pipeline {
 
         stage('deploy artifacts') {
             steps {
-                archiveArtifacts artifacts: "**/build/libs/*", followSymlinks: false
+                // archiveArtifacts artifacts: "**/build/libs/*", followSymlinks: false
+                archiveArtifacts artifacts: "repo/${BUILD_PATH}/${BUILD_RESULT_PATH}", followSymlinks: false
             }
         }
     }
