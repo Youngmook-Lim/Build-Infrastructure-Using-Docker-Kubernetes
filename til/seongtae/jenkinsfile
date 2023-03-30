@@ -4,8 +4,8 @@ pipeline {
     }
 
     environment {
-        GIT_URL = "https://github.com/joykst96/random-pick.git"
-        BUILD_PATH = '.'
+        GIT_URL = "https://github.com/SonarSource/sonar-scanning-examples.git"
+        BUILD_PATH = 'sonarqube-scanner-gradle/gradle-basic'
     }
 
     parameters {
@@ -63,16 +63,16 @@ pipeline {
                     def buildStatusJson = readJSON text: buildStatusResponse.content
 
                     def commitBuilt = false
-                    // for (build in buildStatusJson.allBuilds) {
-                    //     def branchBuildInfo = build.actions.find { it.buildsByBranchName }
-                    //     if (branchBuildInfo) {
-                    //         def commitInfo = branchBuildInfo.buildsByBranchName.values().find { it.revision.SHA1.startsWith("${TARGET_COMMIT}") }
-                    //         if (commitInfo && build.result == 'SUCCESS') {
-                    //             commitBuilt = true
-                    //             break
-                    //         }
-                    //     }
-                    // }
+                    for (build in buildStatusJson.allBuilds) {
+                        def branchBuildInfo = build.actions.find { it.buildsByBranchName }
+                        if (branchBuildInfo) {
+                            def commitInfo = branchBuildInfo.buildsByBranchName.values().find { it.revision.SHA1.startsWith("${TARGET_COMMIT}") }
+                            if (commitInfo && build.result == 'SUCCESS') {
+                                commitBuilt = true
+                                break
+                            }
+                        }
+                    }
 
                     if (commitBuilt) {
                         echo "Target commit ${TARGET_COMMIT} was built successfully. Stopping the build."

@@ -15,14 +15,6 @@ pipeline {
         string(name: 'COMMIT_HASH', defaultValue: '', description: 'Input commit hash to build')
     }
 
-    // parameters {
-    //     number(name: 'PRIORITY', defaultValue: 5, description: 'Set the build priority. This can be from 1 to 10, with higher numbers indicating higher priority.')
-    // }
-
-    // options {
-    //     priority(params.PRIORITY)
-    // }
-
     stages {
         stage('Set Environment Variables') {
             steps {
@@ -31,13 +23,11 @@ pipeline {
                         string(credentialsId: 'sonar_login', variable: 'SONAR_LOGIN'),
                         string(credentialsId: 'sonar_password', variable: 'SONAR_PASSWORD'),
                         string(credentialsId: 'sonar_port', variable: 'SONAR_PORT'),
-                        string(credentialsId: 'jenkins_port', variable: 'JENKINS_PORT'),
                         string(credentialsId: 'host_bind_mount', variable: 'HOST_BIND_MOUNT'),
                     ]) {
                         env.SONAR_LOGIN = "${SONAR_LOGIN}"
                         env.SONAR_PASSWORD = "${SONAR_PASSWORD}"
                         env.SONAR_PORT = "${SONAR_PORT}"
-                        env.JENKINS_PORT = "${JENKINS_PORT}"
                         env.HOST_BIND_MOUNT = "${HOST_BIND_MOUNT}"
 
                         // parameters -> env
@@ -120,7 +110,7 @@ pipeline {
                 script {
                     // Switch to the master agent
                     node('master') {
-                        dir("${LANGUAGE}/${BUILD_ENV}") {
+                        dir("../scripts/${LANGUAGE}/${BUILD_ENV}") {
                             stash name: "${LANGUAGE}-${BUILD_ENV}", includes: "*.sh"
                         }
                     }
@@ -133,6 +123,12 @@ pipeline {
                         sh "chmod +x *.sh"
                     }
                 }
+            }
+        }
+
+        stage('Sonarqube dependency injection') {
+            steps {
+                sh "scripts/injection.sh ${WORKSPACE}/repo/${BUILD_PATH}/build.gradle"
             }
         }
 
@@ -201,7 +197,7 @@ pipeline {
         stage('Sonarqube Quality Gate') {
             steps {
                 script {
-                    // Wait for analysis report to be processed by SonarQube
+                    // Wait for analysis report to be processed by SonarQubeff
                     def waitTime = 0
                     def maxWaitTime = 60
                     def analysisStatus = 'NONE'
@@ -325,8 +321,8 @@ pipeline {
             steps {
                 script {
                     echo '빌드 컨테이너에서 빌드를 진행합니다.'
-                    dir("${WORKSPACE}/scripts") {
-                        sh "./build.sh ${HOST_BIND_MOUNT} ${JOB_NAME} ${BUILD_PATH}"
+                    dir("${WORKSPACE}") {
+                        sh "scripts/build.sh ${HOST_BIND_MOUNT} ${JOB_NAME} ${BUILD_PATH}"
                     }
 
                 }
@@ -334,13 +330,21 @@ pipeline {
             post {
                 failure {
                     script {
-                        // 실패했는데 로그에 FAILED가 안찍히면 끝까지 못간것 -> 끝까지 가기전에 뭔가 외부요인이 개입
                         echo "BUILD FAILED!"
-                        if (!readFile('jenkins_build_log').contains("FAILED")) {
-                            // 최우선 순위로 재요청
-                            // build job: env.JOB_NAME, parameters: [number(name: 'PRIORITY', value: 10)], wait: true
-                            build job: env.JOB_NAME, wait: true
+                        if (params.RETRY) {
                             exit pipeline
+                        }
+                        dir("${WORKSPACE}") {
+                            if (sh(returnStatus: true, script: "scripts/fail_analysis.sh") == 1 || !fileExists('NORMAL_FAIL')) {
+                                build(job: env.JOB_NAME, parameters: [
+                                string(name: 'BUILD_ENV', value: env.BUILD_ENV),
+                                string(name: 'LANGUAGE', value: env.LANGUAGE),
+                                string(name: 'GIT_BRANCH', value: env.GIT_BRANCH),
+                                string(name: 'COMMIT_HASH', value: env.COMMIT_HASH),
+                                string(name: 'RETRY', value: 'TRUE'),
+                                string(name: 'BuildPriority', value: '1')
+                                ], wait: false)
+                            }
                         }
                     }
                 }
@@ -349,7 +353,7 @@ pipeline {
 
         stage('deploy artifacts') {
             steps {
-                archiveArtifacts artifacts: "repo/${BUILD_PATH}/build/libs/*", followSymlinks: false
+                archiveArtifacts artifacts: "**/build/libs/*", followSymlinks: false
             }
         }
     }
