@@ -130,8 +130,6 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
             return;
         }
 
-        // commitHash가 없는 경우에는 latest 처리 => 이거 해결해야할지도??
-
         String jobName = run.getParent().getDisplayName();
 
         // Gets the logged in username.
@@ -156,7 +154,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
         // Create a new Pipeline Job
         try {
-            TopLevelItem item = userFolder.createProject(WorkflowJob.class, currentUsername+"-"+name);
+            TopLevelItem item = userFolder.createProject(WorkflowJob.class, currentUsername+"-"+language+"-"+name);
             if (item instanceof WorkflowJob) {
                 WorkflowJob job = (WorkflowJob) item;
                 job.setDefinition(new CpsFlowDefinition(generateScript(), true));
