@@ -24,8 +24,8 @@ pipeline {
     }
 
     parameters {
-        string(name: 'BUILD_ENV', defaultValue: 'msbuild', description: 'Build environment')
-        string(name: 'LANGUAGE', defaultValue: 'csharp', description: 'Programming language')
+        string(name: 'BUILD_ENV', defaultValue: 'gradle', description: 'Build environment')
+        string(name: 'LANGUAGE', defaultValue: 'java', description: 'Programming language')
         string(name: 'GIT_BRANCH', defaultValue: 'master', description: 'Git branch')
         string(name: 'COMMIT_HASH', defaultValue: '', description: 'Input commit hash to build')
     }
@@ -143,7 +143,11 @@ pipeline {
 
         stage('Sonarqube dependency injection') {
             steps {
-                sh "scripts/injection.sh ${WORKSPACE}/repo/${BUILD_PATH}/build.gradle"
+                script {
+                    if ("${BUILD_ENV}" == 'gradle') {
+                        sh "scripts/injection.sh ${WORKSPACE}/repo/${BUILD_PATH}/build.gradle"
+                    }
+                }
             }
         }
 
