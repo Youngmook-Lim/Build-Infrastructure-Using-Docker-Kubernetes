@@ -15,8 +15,6 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 
 import javax.servlet.ServletException;
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
@@ -208,7 +206,9 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "                        echo \"User provided commit hash: ${TARGET_COMMIT}\"\n" +
                 "                    }\n" +
                 "\n" +
-                "                    def buildStatusUrl = \"${JENKINS_URL}/job/${JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]\"\n" +
+                "                    def jobNameSplit = \"${JOB_NAME}\".split('/')\n" +
+                "                    def newJobName = jobNameSplit[0] + \"/job/\" + jobNameSplit[1]\n" +
+                "                    def buildStatusUrl = \"${JENKINS_URL}/job/${newJobName}/api/json?tree=allBuilds[result,actions[buildsByBranchName[[]]]]\"\n" +
                 "                    def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: \"authentication_id\", acceptType: 'APPLICATION_JSON')\n" +
                 "                    def buildStatusJson = readJSON text: buildStatusResponse.content\n" +
                 "\n" +
