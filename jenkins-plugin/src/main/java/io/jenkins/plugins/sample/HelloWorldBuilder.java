@@ -74,7 +74,14 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     public String generateScript(){
         String jenkinsPipeline = "";
         jenkinsPipeline = "pipeline {\n";
-        jenkinsPipeline += "  agent any\n";
+        jenkinsPipeline += "  agent {\n";
+        jenkinsPipeline += "       label 'agent'\n";
+        jenkinsPipeline += "  }\n";
+        if(buildEnv.equals("maven")){
+            jenkinsPipeline += "  tools {\n";
+            jenkinsPipeline += "       maven 'maven'\n";
+            jenkinsPipeline += "  }\n";
+        }
         jenkinsPipeline += "    environment {\n";
         jenkinsPipeline += "        GIT_URL = \"" + gitUrl + "\"\n";
         jenkinsPipeline += "        BUILD_PATH = '"+buildPath+"'\n";
