@@ -25,6 +25,7 @@
             <option value="java">Java</option>
             <option value="c">C</option>
             <option value="c++">C++</option>
+            <option value="csharp">C#</option>
         </select>
         <div class="languageErr errTxt"></div>
     </f:entry>
@@ -55,6 +56,9 @@
             ],
             "c++" : [
                 {"Temp C++ Build Env" : "c++buildenv"}
+            ],
+            "csharp" : [
+                {"MSBuild" : "msbuild"}
             ]
         }
 
