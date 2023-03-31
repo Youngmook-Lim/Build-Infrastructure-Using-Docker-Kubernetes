@@ -33,6 +33,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     private final String commitHash;
     private final String buildPath;
 
+
     @DataBoundConstructor
     public HelloWorldBuilder(String gitUrl, String name, String language, String buildEnv, String branch, String commitHash, String buildPath) {
         this.name = name;
@@ -73,10 +74,18 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     public String generateScript(){
         String jenkinsPipeline = "";
         jenkinsPipeline = "pipeline {\n";
-        jenkinsPipeline += "  agent any\n";
+        jenkinsPipeline += "  agent {\n";
+        jenkinsPipeline += "       label 'agent'\n";
+        jenkinsPipeline += "  }\n";
+        if(buildEnv.equals("maven")){
+            jenkinsPipeline += "  tools {\n";
+            jenkinsPipeline += "       maven 'maven'\n";
+            jenkinsPipeline += "  }\n";
+        }
         jenkinsPipeline += "    environment {\n";
-        jenkinsPipeline += "        GIT_URL = \"" + gitUrl + "\"\n" ;
+        jenkinsPipeline += "        GIT_URL = \"" + gitUrl + "\"\n";
         jenkinsPipeline += "        BUILD_PATH = '"+buildPath+"'\n";
+        jenkinsPipeline += "        BUILD_RESULT_PATH = '"+ getBuildResPath(buildEnv) +"'\n";
         jenkinsPipeline += "    }\n";
         jenkinsPipeline += "  parameters {\n";
         jenkinsPipeline += "    string(name: 'BUILD_ENV', defaultValue: '" + buildEnv + "', description: 'Build environment')\n";
@@ -100,6 +109,16 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         return jenkinsPipeline;
     }
 
+    private String getBuildResPath(String buildEnv) {
+        switch (buildEnv){
+            case "maven":
+                return "build/libs/*.jar";
+            case "gradle":
+                return "target/*.jar";
+        }
+        return "nothing";
+    }
+
     private Folder getUserFolder(String username) throws IOException {
         Jenkins jenkinsInstance = Jenkins.get();
         TopLevelItem folderItem = jenkinsInstance.getItem(username+"-folder");
@@ -117,8 +136,6 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
             job.makeDisabled(true);
             return;
         }
-
-        // commitHash가 없는 경우에는 latest 처리 => 이거 해결해야할지도??
 
         String jobName = run.getParent().getDisplayName();
 
@@ -144,7 +161,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
         // Create a new Pipeline Job
         try {
-            TopLevelItem item = userFolder.createProject(WorkflowJob.class, currentUsername+"-"+name);
+            TopLevelItem item = userFolder.createProject(WorkflowJob.class, currentUsername+"-"+language+"-"+name);
             if (item instanceof WorkflowJob) {
                 WorkflowJob job = (WorkflowJob) item;
                 job.setDefinition(new CpsFlowDefinition(generateScript(), true));
