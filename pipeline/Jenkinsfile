@@ -127,7 +127,7 @@ pipeline {
                 script {
                     // Switch to the master agent
                     node('master') {
-                        dir("../scripts/${LANGUAGE}/${BUILD_ENV}") {
+                        dir("../../scripts/${LANGUAGE}/${BUILD_ENV}") {
                             stash name: "${LANGUAGE}-${BUILD_ENV}", includes: "*.sh"
                         }
                     }
