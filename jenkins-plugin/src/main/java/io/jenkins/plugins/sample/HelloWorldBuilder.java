@@ -100,9 +100,9 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     private String getBuildResPath(String buildEnv) {
         switch (buildEnv){
             case "maven":
-                return "build/libs/*.jar";
-            case "gradle":
                 return "target/*.jar";
+            case "gradle":
+                return "build/libs/*.jar";
         }
         return "nothing";
     }
@@ -164,7 +164,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     }
 
     public String getRestScript(){
-        return  "  stages {\n" +
+        return  "    stages {\n" +
                 "        stage('Set Environment Variables') {\n" +
                 "            steps {\n" +
                 "                script {\n" +
@@ -193,9 +193,10 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "            steps {\n" +
                 "                script {\n" +
                 "                    env.TARGET_COMMIT = \"${COMMIT_HASH}\".trim()\n" +
-                "                    if(\"${TARGET_COMMIT}\" == '') {\n" +
+                "                    if(\"${TARGET_COMMIT}\" == '') { // commit hash 값이 입력되지 않았을 경우.\n" +
+                "                        // 사용자 지정 브랜치에서 가장 최근 commit hash 값을 얻어옴.\n" +
                 "                        env.TARGET_COMMIT = sh(script: \"git ls-remote ${GIT_URL} ${params.GIT_BRANCH} | awk '{print \\$1}'\", returnStdout: true).trim()\n" +
-                "                        if(\"${TARGET_COMMIT}\" == '') {\n" +
+                "                        if(\"${TARGET_COMMIT}\" == '') {    // 브랜치 이름이 존재하지 않을 경우 빌드 중지\n" +
                 "                            echo \"Can't find target branch's commit hash\"\n" +
                 "                            currentBuild.result = 'ABORTED'\n" +
                 "                            error(\"Build was aborted because the ${GIT_BRANCH} branch doesn't exist.\")\n" +
@@ -208,12 +209,12 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "\n" +
                 "                    def jobNameSplit = \"${JOB_NAME}\".split('/')\n" +
                 "                    def newJobName = jobNameSplit[0] + \"/job/\" + jobNameSplit[1]\n" +
-                "                    def buildStatusUrl = \"${JENKINS_URL}/job/${newJobName}/api/json?tree=allBuilds[result,actions[buildsByBranchName[[]]]]\"\n" +
+                "                    def buildStatusUrl = \"${JENKINS_URL}/job/${newJobName}/api/json?tree=builds[number,result,actions[buildsByBranchName[*[*]]]]\"\n" +
                 "                    def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: \"authentication_id\", acceptType: 'APPLICATION_JSON')\n" +
                 "                    def buildStatusJson = readJSON text: buildStatusResponse.content\n" +
                 "\n" +
                 "                    def commitBuilt = false\n" +
-                "                    for (build in buildStatusJson.allBuilds) {\n" +
+                "                    for (build in buildStatusJson.builds) {\n" +
                 "                        def branchBuildInfo = build.actions.find { it.buildsByBranchName }\n" +
                 "                        if (branchBuildInfo) {\n" +
                 "                            def commitInfo = branchBuildInfo.buildsByBranchName.values().find { it.revision.SHA1.startsWith(\"${TARGET_COMMIT}\") }\n" +
@@ -288,6 +289,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "\n" +
                 "        stage('Launch Sonarqube container') {\n" +
                 "            steps {\n" +
+                "                echo '정적검사를 위한 소나큐브 컨테이너를 띄웁니다.'\n" +
                 "                sh 'docker run --rm -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p ${SONAR_PORT}:9000 sonarqube:latest'\n" +
                 "                script {\n" +
                 "                    env.SONAR_HOST = \"http://${sh(script:'docker exec sonarqube hostname -I', returnStdout: true).trim()}:${SONAR_PORT}\"\n" +
@@ -298,6 +300,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "\n" +
                 "        stage('Get Sonarqube token') {\n" +
                 "            steps {\n" +
+                "                echo '소나큐브 토큰을 받아 환경변수로 저장합니다.'\n" +
                 "                script {\n" +
                 "                    def tokenOutput = sh(script: '''\n" +
                 "                        USER_LOGIN=${SONAR_LOGIN}\n" +
@@ -335,6 +338,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "\n" +
                 "        stage('Sonarqube Scan') {\n" +
                 "            steps {\n" +
+                "                echo '소나큐브 정적검사를 실행합니다.'\n" +
                 "                dir(\"${WORKSPACE}\") {\n" +
                 "                    script {\n" +
                 "                        def repositoryName = sh(script: \"basename -s .git ${GIT_URL}\", returnStdout: true).trim()\n" +
@@ -381,6 +385,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "\n" +
                 "        stage('Save Sonarqube Report') {\n" +
                 "            steps {\n" +
+                "                echo '소나큐브 결과를 파일로 저장합니다.'\n" +
                 "                script {\n" +
                 "                    def metrics = 'ncloc,coverage,violations,complexity,bugs,vulnerabilities,code_smells,sqale_index,alert_status,reliability_rating,security_rating'\n" +
                 "\n" +
@@ -462,6 +467,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "\n" +
                 "        stage('Save Report') {\n" +
                 "            steps {\n" +
+                "                echo '저장된 결과파일을 archiveArtifacts로 저장합니다.'\n" +
                 "                archiveArtifacts artifacts: 'sonarqube-report.html', fingerprint: true\n" +
                 "            }\n" +
                 "        }\n" +
@@ -469,6 +475,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "        stage('Build') {\n" +
                 "            steps {\n" +
                 "                script {\n" +
+                "                    echo '빌드 컨테이너에서 빌드를 진행합니다.'\n" +
                 "                    dir(\"${WORKSPACE}\") {\n" +
                 "                        sh \"scripts/build.sh ${HOST_BIND_MOUNT} ${JOB_NAME} ${BUILD_PATH}\"\n" +
                 "                    }\n" +
@@ -532,7 +539,8 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "    if (!running) {\n" +
                 "        error(\"SonarQube did not start within the expected time.\")\n" +
                 "    }\n" +
-                "}\n";
+                "}\n" +
+                "\n";
     }
 
     @Symbol("greet")
