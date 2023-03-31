@@ -93,17 +93,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         jenkinsPipeline += "    string(name: 'GIT_BRANCH', defaultValue: '" + branch + "', description: 'Programming language')\n";
         jenkinsPipeline += "    string(name: 'COMMIT_HASH', defaultValue: '" + commitHash + "', description: 'Programming language')\n";
         jenkinsPipeline += "  }\n";
-        jenkinsPipeline += pscript();
-//        try (BufferedReader br = new BufferedReader(new FileReader("src/main/resources/pipeline.txt"))) {
-//            String line;
-//            while ((line = br.readLine()) != null) {
-//                jenkinsPipeline += (line + "\n");
-//            }
-//        } catch (Exception e){
-//            e.printStackTrace();
-//            System.out.println(e.getMessage());
-//            System.out.println(e);
-//        }
+        jenkinsPipeline += getRestScript();
 
         System.out.println(jenkinsPipeline);
         return jenkinsPipeline;
@@ -125,8 +115,58 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
         return (Folder) folderItem;
     }
 
-    public String pscript(){
-        String txt="  stages {\n" +
+
+    @Override
+    public void perform(Run<?, ?> run, FilePath workspace, EnvVars env, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
+
+        Jenkins jenkinsInstance = Jenkins.get();
+        if(name.equals("") || gitUrl.equals("") || language.equals("") || buildEnv.equals("") || branch.equals("") || buildPath.equals("")) {
+            listener.getLogger().println("The build failed. A required input value is empty.");
+            WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
+            job.makeDisabled(true);
+            return;
+        }
+
+        String jobName = run.getParent().getDisplayName();
+
+        // Gets the logged in username.
+        String currentUsername=jobName.split("-")[0];
+        Folder userFolder;
+        try {
+            userFolder = getUserFolder(currentUsername);
+        } catch (IOException e) {
+            e.printStackTrace(listener.error("사용자 폴더를 가져오거나 생성하는데 실패했습니다."));
+            return;
+        }
+
+        // check job name duplication
+        TopLevelItem jobItem = userFolder.getItem(currentUsername+"-"+name);
+        if (jobItem != null) {
+            listener.getLogger().println("Job with this name already exists: " + name);
+//            WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
+//            job.makeDisabled(true);
+            // ???
+            return;
+        }
+
+        // Create a new Pipeline Job
+        try {
+            TopLevelItem item = userFolder.createProject(WorkflowJob.class, currentUsername+"-"+language+"-"+name);
+            if (item instanceof WorkflowJob) {
+                WorkflowJob job = (WorkflowJob) item;
+                job.setDefinition(new CpsFlowDefinition(generateScript(), true));
+                job.save();
+                job.scheduleBuild2(0).waitForStart();
+            } else {
+                listener.getLogger().println("Creating a new pipeline job failed.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace(listener.error("Creating a new pipeline job failed."));
+        }
+    }
+
+    public String getRestScript(){
+        return  "  stages {\n" +
                 "        stage('Set Environment Variables') {\n" +
                 "            steps {\n" +
                 "                script {\n" +
@@ -493,55 +533,6 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "        error(\"SonarQube did not start within the expected time.\")\n" +
                 "    }\n" +
                 "}\n";
-        return txt;
-    }
-    @Override
-    public void perform(Run<?, ?> run, FilePath workspace, EnvVars env, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
-
-        Jenkins jenkinsInstance = Jenkins.get();
-        if(name.equals("") || gitUrl.equals("") || language.equals("") || buildEnv.equals("") || branch.equals("") || buildPath.equals("")) {
-            listener.getLogger().println("The build failed. A required input value is empty.");
-            WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
-            job.makeDisabled(true);
-            return;
-        }
-
-        String jobName = run.getParent().getDisplayName();
-
-        // Gets the logged in username.
-        String currentUsername=jobName.split("-")[0];
-        Folder userFolder;
-        try {
-            userFolder = getUserFolder(currentUsername);
-        } catch (IOException e) {
-            e.printStackTrace(listener.error("사용자 폴더를 가져오거나 생성하는데 실패했습니다."));
-            return;
-        }
-
-        // check job name duplication
-        TopLevelItem jobItem = userFolder.getItem(currentUsername+"-"+name);
-        if (jobItem != null) {
-            listener.getLogger().println("Job with this name already exists: " + name);
-//            WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
-//            job.makeDisabled(true);
-            // ???
-            return;
-        }
-
-        // Create a new Pipeline Job
-        try {
-            TopLevelItem item = userFolder.createProject(WorkflowJob.class, currentUsername+"-"+language+"-"+name);
-            if (item instanceof WorkflowJob) {
-                WorkflowJob job = (WorkflowJob) item;
-                job.setDefinition(new CpsFlowDefinition(generateScript(), true));
-                job.save();
-                job.scheduleBuild2(0).waitForStart();
-            } else {
-                listener.getLogger().println("Creating a new pipeline job failed.");
-            }
-        } catch (Exception e) {
-            e.printStackTrace(listener.error("Creating a new pipeline job failed."));
-        }
     }
 
     @Symbol("greet")
