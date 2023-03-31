@@ -261,7 +261,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "                script {\n" +
                 "                    // Switch to the master agent\n" +
                 "                    node('master') {\n" +
-                "                        dir(\"../scripts/${LANGUAGE}/${BUILD_ENV}\") {\n" +
+                "                        dir(\"../../scripts/${LANGUAGE}/${BUILD_ENV}\") {\n" +
                 "                            stash name: \"${LANGUAGE}-${BUILD_ENV}\", includes: \"*.sh\"\n" +
                 "                        }\n" +
                 "                    }\n" +
