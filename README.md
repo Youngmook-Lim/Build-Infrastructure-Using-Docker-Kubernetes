@@ -121,4 +121,4 @@
   - 동일 Build 요청 감지 로직
   - Job별 우선순위 부여 로직
 
-![header](https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=footer&text=Thank you =90)
+![header](https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=footer&text=Thank you&fontSize=90)
