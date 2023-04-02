@@ -29,13 +29,15 @@ apt install software-properties-common
 
 - 도시 설정(Asia: 6 입력 후 Seoul: 69 입력)
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/4e8a96e1-4c2e-43af-872d-4c491638bd8b/Untitled.png)
+![image](https://user-images.githubusercontent.com/89143804/229355156-990b301b-7624-40a5-9923-57f779105e83.png)
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/8d935155-ba49-4b10-b896-8b3245cf6901/Untitled.png)
+![image](https://user-images.githubusercontent.com/89143804/229355171-004a7434-85fd-4283-bc03-da53634f8a78.png)
+
+- ansible을 설치합니다.
 
 ```jsx
 add-apt-repository --yes --update ppa:ansible/ansible
-apt install ansible
+apt install -y ansible
 ```
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/e8b644fd-d157-4203-b58f-053c62cb58be/Untitled.png)
+여기까지 진행하셨다면 [다음 단계로 이동(업뎃 필요)]()해주세요.
