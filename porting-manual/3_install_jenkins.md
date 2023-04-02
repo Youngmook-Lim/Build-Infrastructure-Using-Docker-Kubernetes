@@ -21,7 +21,7 @@ docker run --name jenkins-server -d -p 8080:8080 -p 50000:50000 -v /home/jenkins
 
 - docker ps로 Container 구동 확인
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/efe63d83-606a-4f92-be39-2da5a9bd08c5/Untitled.png)
+![image](https://user-images.githubusercontent.com/89143804/229354763-0df113e1-a187-41ec-aa6d-003848fb0e20.png)
 
 3. Docker 로그에 접근하여 초기 비밀번호를 복사합니다.
 
@@ -29,22 +29,23 @@ docker run --name jenkins-server -d -p 8080:8080 -p 50000:50000 -v /home/jenkins
 docker logs jenkins-server
 ```
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/9adce8ad-5d13-4a9f-8fdd-0663e85e9f87/Untitled.png)
+![image](https://user-images.githubusercontent.com/89143804/229354792-7fe8caee-58fa-4eeb-807a-dccb9d10384e.png)
 
 4. `[메인 EC2 도메인 or IP]:8080/` 에 접속하여 초기 비밀번호를 붙여넣습니다.
 
-   ![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/b235ed26-e113-4d21-9f54-095ac519768f/Untitled.png)
+![image](https://user-images.githubusercontent.com/89143804/229354824-d9a764b7-9407-4039-9b75-fbbd29bdb4fa.png)
 
-5. install 버튼 클릭
-   - 나중에 캡쳐 사진 가져오기
+5. 설치를 진행합니다.
 6. 계정 생성
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/be1afcc1-994e-4ada-9d07-1460eeb3be06/Untitled.png)
+- 입력 칸을 모두 채운 뒤 "Save and Continue"를 클릭합니다.
+  ![image](https://user-images.githubusercontent.com/89143804/229354856-0c89720c-a121-48fe-ab4b-c7a6577e5bd1.png)
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/514009ad-4192-4314-93c7-1d38dc3023aa/Untitled.png)
+- 입력되어 있는 Jenkins URL이 맞는지 확인 후 "Save and Finish"를 클릭합니다.
+  ![image](https://user-images.githubusercontent.com/89143804/229354878-cfcb60b3-841f-43fe-b90d-98e9b63080ed.png)
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/186dda05-49e0-48a3-86e5-b1b3de9706c8/Untitled.png)
+- "Start using Jenkins"를 클릭합니다.
+  ![image](https://user-images.githubusercontent.com/89143804/229354897-a5984ef3-786a-4917-ae58-4132d43c882e.png)
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/8cbc8df8-cb8e-4bcb-aaa4-1be9d65edb93/Untitled.png)
-
-- 위와 같은 Dashboard가 나올 시 설정이 완료된 것입니다.
+- 아래와 같은 Dashboard가 나올 시 설정이 완료된 것입니다.
+  ![image](https://user-images.githubusercontent.com/89143804/229354914-183f520d-4cc0-4fee-97a0-03f061d7e618.png)
