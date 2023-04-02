@@ -45,9 +45,8 @@
   - 이슈 관리 : Jira
   - 커뮤니케이션 : Mattermost, Webex, Notion
 
-- Server
+- CI/CD
 
-  - Ubuntu `20.0.4`
   - Docker `20.10.21`
   - Jenkins `2.387.1`
   - Ansible `core 2.12.10`
@@ -57,6 +56,10 @@
 
   - Grafana
   - Prometheus
+
+- OS
+
+  - Ubuntu `20.04`
 
 - IDE
   - IntelliJ
@@ -121,4 +124,4 @@
   - 동일 Build 요청 감지 로직
   - Job별 우선순위 부여 로직
 
-![header](https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=footer&text=Thank you&fontSize=90)
+![footer](https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=footer&text=Thank you&fontSize=90)
