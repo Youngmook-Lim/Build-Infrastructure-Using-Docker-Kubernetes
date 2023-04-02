@@ -1,4 +1,6 @@
-### Ansible Server 설치 및 실행
+![header](https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=header&text=Install Ansible&fontSize=70)
+
+## Ansible Server 설치 및 실행
 
 1. Docker Container를 생성
 
@@ -16,7 +18,7 @@ docker run --privileged -itd --name ansible-server -p 20022:22 -p 8081:8080 -e c
 docker exec -it ansible-server bash
 ```
 
-## 3. Ansible 설치
+3. Ansible 설치
 
 1. 소프트웨어 Repository 관리를 위한 유틸리티를 제공하는 패키지를 설치합니다.
 

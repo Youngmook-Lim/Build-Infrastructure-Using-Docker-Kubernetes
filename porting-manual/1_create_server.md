@@ -1,8 +1,8 @@
-![header](https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=header&text=Create Server&fontSize=90)
+![header](https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=header&text=Create Server&fontSize=70)
 
 ## InfraStructure Overview
 
-인프라는 다음 사양의 AWS EC2 인스턴스 5개로 구성됩니다.
+인프라는 다음 사양의 AWS EC2 인스턴스 5개로 구성됩니다. (k8s는 kubernetes의 줄임말입니다.)
 
 - **메인 서버 인스턴스**
 

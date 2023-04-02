@@ -1,4 +1,4 @@
-![header](https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=header&text=Prerequisites&fontSize=90)
+![header](https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=header&text=Prerequisites&fontSize=70)
 
 DaeGuOps 프로젝트를 진행하기 위해서는 다음과 같은 전제 조건이 필요합니다.
 

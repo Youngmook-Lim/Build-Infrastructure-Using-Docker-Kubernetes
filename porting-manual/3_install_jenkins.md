@@ -1,4 +1,6 @@
-### Jenkins Master 설치 및 설정
+![header](https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=header&text=Install Jenkins&fontSize=70)
+
+## Jenkins Master 설치 및 설정
 
 1. Docker Hub에서 jenkins 이미지를 가져옵니다.
 
@@ -49,3 +51,5 @@ docker logs jenkins-server
 
 - 아래와 같은 Dashboard가 나올 시 설정이 완료된 것입니다.
   ![image](https://user-images.githubusercontent.com/89143804/229354914-183f520d-4cc0-4fee-97a0-03f061d7e618.png)
+
+여기까지 진행하셨다면 [다음 단계로 이동(업뎃 필요)]()해주세요.

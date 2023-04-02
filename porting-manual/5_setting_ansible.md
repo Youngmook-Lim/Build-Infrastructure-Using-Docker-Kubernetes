@@ -1,4 +1,10 @@
-## 1. vim 설치
+![header](https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=header&text=Setting Ansible&fontSize=70)
+
+## Host 파일 생성 및 SSH 연결
+
+### Host 파일 생성
+
+1. vim 설치
 
 - Linux 용으로 널리 사용되는 텍스트 편집기인 `vim`을 설치합니다.
 
@@ -6,7 +12,7 @@
 apt-get install -y vim
 ```
 
-## 2. Inventory 작성
+2. Inventory 작성
 
 - Hosts 목록 파일 접속에 접속합니다.
 
@@ -29,7 +35,9 @@ ansible_user=(사용자)
 (k8s 서버 IP)
 ```
 
-## 3. K8s Master, Build Server에 Password 생성
+### SSH 연결
+
+1. K8s Master, Build Server에 Password 생성
 
 - K8s Master Server에 접속합니다.
 - /etc/ssh/sshd_config 파일 수정(PasswordAuthentication yes)
@@ -66,7 +74,7 @@ sudo systemctl restart ssh
 
 - **모든 빌드 서버에 대하여 위 과정을 실행합니다.**
 
-## 2. SSH key 생성
+2. SSH key 생성
 
 - ansible-server에서 SSH key을 생성합니다.
 
@@ -74,7 +82,7 @@ sudo systemctl restart ssh
 ssh-keygen -t rsa -N '' -f ~/.ssh/id_rsa <<< y
 ```
 
-## 3. K8s Master, Build Server에 SSH key 복사
+3. K8s Master, Build Server에 SSH key 복사
 
 - ansible-server에서 SSH key를 해당 서버에 복사하기 위해 다음과 같이 입력합니다.
 
