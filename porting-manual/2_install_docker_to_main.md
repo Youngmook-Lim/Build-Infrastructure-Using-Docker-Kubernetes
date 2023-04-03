@@ -35,4 +35,4 @@ sudo systemctl start docker
 
 5. Main Server에서 로그아웃 후 다시 로그인합니다.
 
-여기까지 진행되셨다면 [다음 단계로 이동(업뎃 필요)]()해주세요.
+여기까지 진행되셨다면 [다음 단계로 이동](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/develop/porting-manual/3_install_jenkins.md)해주세요.

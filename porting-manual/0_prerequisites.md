@@ -7,4 +7,4 @@ DaeGuOps 프로젝트를 진행하기 위해서는 다음과 같은 전제 조�
 
 AWS 계정이 없다면 [Multipass](https://multipass.run/)를 통해 대체할 수 있지만, 본 문서에서 따로 다루고 있지는 않습니다.
 
-준비가 완료되었다면 [다음 문서로 이동(업뎃 필요)]()해주세요.
+준비가 완료되었다면 [다음 문서로 이동](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/develop/porting-manual/1_create_server.md)해주세요.

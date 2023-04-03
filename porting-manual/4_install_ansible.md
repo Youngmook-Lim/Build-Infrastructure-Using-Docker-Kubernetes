@@ -42,4 +42,4 @@ add-apt-repository --yes --update ppa:ansible/ansible
 apt install -y ansible
 ```
 
-여기까지 진행하셨다면 [다음 단계로 이동(업뎃 필요)]()해주세요.
+여기까지 진행하셨다면 [다음 단계로 이동](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/develop/porting-manual/5_setting_ansible.md)해주세요.

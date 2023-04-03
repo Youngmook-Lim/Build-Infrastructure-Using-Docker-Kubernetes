@@ -88,4 +88,4 @@
 
 - `ansible-playbook /home/ansible-playbooks/playbook-create-jenkins-agent.yml` 실행
 
-- 완료 시 build-1~3 서버에서 Jenkins Agent가 배포 및 서비스됩니다.정상적으로 완료되었다면 [다음 단계로 이동(업뎃 필요)]()해주세요.
+- 완료 시 build-1~3 서버에서 Jenkins Agent가 배포 및 서비스됩니다.정상적으로 완료되었다면 [다음 단계로 이동](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/develop/porting-manual/10_connect_jenkins_master_and_agents.md)해주세요.
