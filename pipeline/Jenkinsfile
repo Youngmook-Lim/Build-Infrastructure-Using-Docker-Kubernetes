@@ -279,50 +279,107 @@ pipeline {
                     }.join("")
 
                     def html = """
-                        <html>
+                        <!DOCTYPE html>
+                        <html lang="en">
                             <head>
+                                <meta charset="UTF-8" />
+                                <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+                                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                                 <title>SonarQube Report</title>
                                 <style>
-                                    body {
-                                        font-family: Arial, sans-serif;
-                                    }
-                                    h1 {
-                                        font-size: 24px;
-                                    }
-                                    h2 {
-                                        font-size: 20px;
-                                        margin-bottom: 10px;
-                                    }
-                                    table {
-                                        border-collapse: collapse;
-                                        width: 100%;
-                                    }
-                                    th, td {
-                                        border: 1px solid #ddd;
-                                        padding: 8px;
-                                        text-align: left;
-                                    }
-                                    th {
-                                        background-color: #f2f2f2;
-                                        font-weight: bold;
-                                    }
+                                body {
+                                    font-family: Arial, sans-serif;
+                                    display: flex;
+                                    flex-direction: column;
+                                    justify-content: center;
+                                    align-items: center;
+                                    color: #212529;
+                                    position: relative;
+                                    height: 100vh;
+                                    background-color: #e9ecef;
+                                }
+                                .container {
+                                    display: flex;
+                                    flex-direction: column;
+                                    justify-content: center;
+                                    align-items: center;
+                                    padding: 28px;
+                                    background-color: #fff;
+                                    border-radius: 9px;
+                                    position: absolute;
+                                    top: 50%;
+                                    left: 50%;
+                                    transform: translate(-50%, -50%);
+                                }
+                                h1 {
+                                    font-size: 36px;
+                                    margin-top: 8px;
+                                    margin-bottom: 18px;
+                                }
+                                h2 {
+                                    font-size: 24px;
+                                    margin-bottom: 10px;
+                                    border: 2px solid black;
+                                    padding: 12px 24px;
+                                    border-radius: 5px;
+                                }
+                                h2 span {
+                                    color: #40c057;
+                                    font-size: 28px;
+                                }
+                                h3 {
+                                    font-size: 20px;
+                                    margin-bottom: 8px;
+                                }
+                                table {
+                                    border-collapse: collapse;
+                                    width: 75vw;
+                                    max-width: 400px;
+                                    margin: 0 auto;
+                                    table-layout: fixed;
+                                    border: 2px solid #212529;
+                                    border-radius: 9px;
+                                }
+                                th,
+                                td {
+                                    border: 1px solid #ddd;
+                                    padding: 8px;
+                                    text-align: center;
+                                    /* column-width: 100px; */
+                                    border: 2px solid #212529;
+                                }
+                                th {
+                                    background-color: #dee2e6;
+                                    font-weight: bold;
+                                }
+                                tr td:nth-of-type(2) {
+                                    color: #40c057;
+                                    font-weight: 700;
+                                    font-size: 18px;
+                                }
+                                tr:nth-of-type(6) td:nth-of-type(2),
+                                tr:nth-of-type(8) td:nth-of-type(2) {
+                                    color: #ff922b;
+                                }
                                 </style>
                             </head>
                             <body>
+                                <div class="container">
                                 <h1>SonarQube Report</h1>
-                                <h2>SonarQube Quality Gate Status: ${qualityGateStatus}</h2>
-                                <h2>Report Data</h2>
+                                <h2>Quality Gate Status: <span>OK</span></h2>
+                                <h3>Report Data</h3>
                                 <table>
                                     <thead>
-                                        <tr>
-                                            <th>Metric</th>
-                                            <th>Value</th>
-                                        </tr>
+                                    <tr>
+                                        <th>Metric</th>
+                                        <th>Value</th>
+                                    </tr>
                                     </thead>
                                     <tbody>
-                                        ${tableRows}
+                                    ${tableRows}
                                     </tbody>
                                 </table>
+                                </div>
                             </body>
                         </html>
                     """
