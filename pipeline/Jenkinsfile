@@ -269,7 +269,19 @@ pipeline {
 
                     def qualityGateStatus = qualityGateData['projectStatus']['status']
 
-                    def tableRows = reportData['component']['measures'].collect { measure ->
+                    def measures = reportData['component']['measures']
+                    for (int i = 0; i < measures.size() - 1; i++) {
+                        for (int j = 0; j < measures.size() - i - 1; j++) {
+                            if (measures[j]['metric'].compareTo(measures[j + 1]['metric']) > 0) {
+                                def temp = measures[j]
+                                measures[j] = measures[j + 1]
+                                measures[j + 1] = temp
+                            }
+                        }
+                    }
+                    def sortedMeasures = measures
+
+                    def tableRows = sortedMeasures.collect { measure ->
                         """
                             <tr>
                                 <td>${measure['metric']}</td>
@@ -358,8 +370,8 @@ pipeline {
                                     font-weight: 700;
                                     font-size: 18px;
                                 }
-                                tr:nth-of-type(6) td:nth-of-type(2),
-                                tr:nth-of-type(8) td:nth-of-type(2) {
+                                tr:nth-of-type(3) td:nth-of-type(2),
+                                tr:nth-of-type(10) td:nth-of-type(2) {
                                     color: #ff922b;
                                     background-color: #fff4e6;
                                 }
