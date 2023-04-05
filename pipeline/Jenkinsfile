@@ -354,12 +354,14 @@ pipeline {
                                 }
                                 tr td:nth-of-type(2) {
                                     color: #40c057;
+                                    background-color: #ebfbee;
                                     font-weight: 700;
                                     font-size: 18px;
                                 }
                                 tr:nth-of-type(6) td:nth-of-type(2),
                                 tr:nth-of-type(8) td:nth-of-type(2) {
                                     color: #ff922b;
+                                    background-color: #fff4e6;
                                 }
                                 </style>
                             </head>
