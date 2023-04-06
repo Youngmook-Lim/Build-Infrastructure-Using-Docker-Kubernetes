@@ -52,10 +52,10 @@
                 {"Gradle" : "gradle"},
             ],
             "c" : [
-                {"Temp C Build Env" : "cbuildenv"}
+                {"CMake" : "cmake"}
             ],
             "c++" : [
-                {"Temp C++ Build Env" : "c++buildenv"}
+                {"CMake" : "cmake"}
             ],
             "csharp" : [
                 {"MSBuild" : "msbuild"}

@@ -164,7 +164,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     }
 
     public String getRestScript(){
-        return  "    stages {\n" +
+        return  "stages {\n" +
                 "        stage('Set Environment Variables') {\n" +
                 "            steps {\n" +
                 "                script {\n" +
@@ -193,10 +193,9 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "            steps {\n" +
                 "                script {\n" +
                 "                    env.TARGET_COMMIT = \"${COMMIT_HASH}\".trim()\n" +
-                "                    if(\"${TARGET_COMMIT}\" == '') { // commit hash 값이 입력되지 않았을 경우.\n" +
-                "                        // 사용자 지정 브랜치에서 가장 최근 commit hash 값을 얻어옴.\n" +
+                "                    if(\"${TARGET_COMMIT}\" == '') { \n" +
                 "                        env.TARGET_COMMIT = sh(script: \"git ls-remote ${GIT_URL} ${params.GIT_BRANCH} | awk '{print \\$1}'\", returnStdout: true).trim()\n" +
-                "                        if(\"${TARGET_COMMIT}\" == '') {    // 브랜치 이름이 존재하지 않을 경우 빌드 중지\n" +
+                "                        if(\"${TARGET_COMMIT}\" == '') {  \n" +
                 "                            echo \"Can't find target branch's commit hash\"\n" +
                 "                            currentBuild.result = 'ABORTED'\n" +
                 "                            error(\"Build was aborted because the ${GIT_BRANCH} branch doesn't exist.\")\n" +
@@ -289,7 +288,6 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "\n" +
                 "        stage('Launch Sonarqube container') {\n" +
                 "            steps {\n" +
-                "                echo '정적검사를 위한 소나큐브 컨테이너를 띄웁니다.'\n" +
                 "                sh 'docker run --rm -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p ${SONAR_PORT}:9000 sonarqube:latest'\n" +
                 "                script {\n" +
                 "                    env.SONAR_HOST = \"http://${sh(script:'docker exec sonarqube hostname -I', returnStdout: true).trim()}:${SONAR_PORT}\"\n" +
@@ -300,7 +298,6 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "\n" +
                 "        stage('Get Sonarqube token') {\n" +
                 "            steps {\n" +
-                "                echo '소나큐브 토큰을 받아 환경변수로 저장합니다.'\n" +
                 "                script {\n" +
                 "                    def tokenOutput = sh(script: '''\n" +
                 "                        USER_LOGIN=${SONAR_LOGIN}\n" +
@@ -338,7 +335,6 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "\n" +
                 "        stage('Sonarqube Scan') {\n" +
                 "            steps {\n" +
-                "                echo '소나큐브 정적검사를 실행합니다.'\n" +
                 "                dir(\"${WORKSPACE}\") {\n" +
                 "                    script {\n" +
                 "                        def repositoryName = sh(script: \"basename -s .git ${GIT_URL}\", returnStdout: true).trim()\n" +
@@ -385,7 +381,6 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "\n" +
                 "        stage('Save Sonarqube Report') {\n" +
                 "            steps {\n" +
-                "                echo '소나큐브 결과를 파일로 저장합니다.'\n" +
                 "                script {\n" +
                 "                    def metrics = 'ncloc,coverage,violations,complexity,bugs,vulnerabilities,code_smells,sqale_index,alert_status,reliability_rating,security_rating'\n" +
                 "\n" +
@@ -403,7 +398,19 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "\n" +
                 "                    def qualityGateStatus = qualityGateData['projectStatus']['status']\n" +
                 "\n" +
-                "                    def tableRows = reportData['component']['measures'].collect { measure ->\n" +
+                "                    def measures = reportData['component']['measures']\n" +
+                "                    for (int i = 0; i < measures.size() - 1; i++) {\n" +
+                "                        for (int j = 0; j < measures.size() - i - 1; j++) {\n" +
+                "                            if (measures[j]['metric'].compareTo(measures[j + 1]['metric']) > 0) {\n" +
+                "                                def temp = measures[j]\n" +
+                "                                measures[j] = measures[j + 1]\n" +
+                "                                measures[j + 1] = temp\n" +
+                "                            }\n" +
+                "                        }\n" +
+                "                    }\n" +
+                "                    def sortedMeasures = measures\n" +
+                "\n" +
+                "                    def tableRows = sortedMeasures.collect { measure ->\n" +
                 "                        \"\"\"\n" +
                 "                            <tr>\n" +
                 "                                <td>${measure['metric']}</td>\n" +
@@ -413,50 +420,109 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "                    }.join(\"\")\n" +
                 "\n" +
                 "                    def html = \"\"\"\n" +
-                "                        <html>\n" +
+                "                        <!DOCTYPE html>\n" +
+                "                        <html lang=\"en\">\n" +
                 "                            <head>\n" +
+                "                                <meta charset=\"UTF-8\" />\n" +
+                "                                <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\" />\n" +
+                "                                <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n" +
                 "                                <title>SonarQube Report</title>\n" +
                 "                                <style>\n" +
-                "                                    body {\n" +
-                "                                        font-family: Arial, sans-serif;\n" +
-                "                                    }\n" +
-                "                                    h1 {\n" +
-                "                                        font-size: 24px;\n" +
-                "                                    }\n" +
-                "                                    h2 {\n" +
-                "                                        font-size: 20px;\n" +
-                "                                        margin-bottom: 10px;\n" +
-                "                                    }\n" +
-                "                                    table {\n" +
-                "                                        border-collapse: collapse;\n" +
-                "                                        width: 100%;\n" +
-                "                                    }\n" +
-                "                                    th, td {\n" +
-                "                                        border: 1px solid #ddd;\n" +
-                "                                        padding: 8px;\n" +
-                "                                        text-align: left;\n" +
-                "                                    }\n" +
-                "                                    th {\n" +
-                "                                        background-color: #f2f2f2;\n" +
-                "                                        font-weight: bold;\n" +
-                "                                    }\n" +
+                "                                body {\n" +
+                "                                    font-family: Arial, sans-serif;\n" +
+                "                                    display: flex;\n" +
+                "                                    flex-direction: column;\n" +
+                "                                    justify-content: center;\n" +
+                "                                    align-items: center;\n" +
+                "                                    color: #212529;\n" +
+                "                                    position: relative;\n" +
+                "                                    height: 100vh;\n" +
+                "                                    background-color: #e9ecef;\n" +
+                "                                }\n" +
+                "                                .container {\n" +
+                "                                    display: flex;\n" +
+                "                                    flex-direction: column;\n" +
+                "                                    justify-content: center;\n" +
+                "                                    align-items: center;\n" +
+                "                                    padding: 28px;\n" +
+                "                                    background-color: #fff;\n" +
+                "                                    border-radius: 9px;\n" +
+                "                                    position: absolute;\n" +
+                "                                    top: 50%;\n" +
+                "                                    left: 50%;\n" +
+                "                                    transform: translate(-50%, -50%);\n" +
+                "                                }\n" +
+                "                                h1 {\n" +
+                "                                    font-size: 36px;\n" +
+                "                                    margin-top: 8px;\n" +
+                "                                    margin-bottom: 18px;\n" +
+                "                                }\n" +
+                "                                h2 {\n" +
+                "                                    font-size: 24px;\n" +
+                "                                    margin-bottom: 10px;\n" +
+                "                                    border: 2px solid black;\n" +
+                "                                    padding: 12px 24px;\n" +
+                "                                    border-radius: 5px;\n" +
+                "                                }\n" +
+                "                                h2 span {\n" +
+                "                                    color: #40c057;\n" +
+                "                                    font-size: 28px;\n" +
+                "                                }\n" +
+                "                                h3 {\n" +
+                "                                    font-size: 20px;\n" +
+                "                                    margin-bottom: 8px;\n" +
+                "                                }\n" +
+                "                                table {\n" +
+                "                                    border-collapse: collapse;\n" +
+                "                                    width: 75vw;\n" +
+                "                                    max-width: 400px;\n" +
+                "                                    margin: 0 auto;\n" +
+                "                                    table-layout: fixed;\n" +
+                "                                    border: 2px solid #212529;\n" +
+                "                                    border-radius: 9px;\n" +
+                "                                }\n" +
+                "                                th,\n" +
+                "                                td {\n" +
+                "                                    border: 1px solid #ddd;\n" +
+                "                                    padding: 8px;\n" +
+                "                                    text-align: center;\n" +
+                "                                    /* column-width: 100px; */\n" +
+                "                                    border: 2px solid #212529;\n" +
+                "                                }\n" +
+                "                                th {\n" +
+                "                                    background-color: #dee2e6;\n" +
+                "                                    font-weight: bold;\n" +
+                "                                }\n" +
+                "                                tr td:nth-of-type(2) {\n" +
+                "                                    color: #40c057;\n" +
+                "                                    background-color: #ebfbee;\n" +
+                "                                    font-weight: 700;\n" +
+                "                                    font-size: 18px;\n" +
+                "                                }\n" +
+                "                                tr:nth-of-type(3) td:nth-of-type(2),\n" +
+                "                                tr:nth-of-type(10) td:nth-of-type(2) {\n" +
+                "                                    color: #ff922b;\n" +
+                "                                    background-color: #fff4e6;\n" +
+                "                                }\n" +
                 "                                </style>\n" +
                 "                            </head>\n" +
                 "                            <body>\n" +
+                "                                <div class=\"container\">\n" +
                 "                                <h1>SonarQube Report</h1>\n" +
-                "                                <h2>SonarQube Quality Gate Status: ${qualityGateStatus}</h2>\n" +
-                "                                <h2>Report Data</h2>\n" +
+                "                                <h2>Quality Gate Status: <span>OK</span></h2>\n" +
+                "                                <h3>Report Data</h3>\n" +
                 "                                <table>\n" +
                 "                                    <thead>\n" +
-                "                                        <tr>\n" +
-                "                                            <th>Metric</th>\n" +
-                "                                            <th>Value</th>\n" +
-                "                                        </tr>\n" +
+                "                                    <tr>\n" +
+                "                                        <th>Metric</th>\n" +
+                "                                        <th>Value</th>\n" +
+                "                                    </tr>\n" +
                 "                                    </thead>\n" +
                 "                                    <tbody>\n" +
-                "                                        ${tableRows}\n" +
+                "                                    ${tableRows}\n" +
                 "                                    </tbody>\n" +
                 "                                </table>\n" +
+                "                                </div>\n" +
                 "                            </body>\n" +
                 "                        </html>\n" +
                 "                    \"\"\"\n" +
@@ -467,7 +533,6 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "\n" +
                 "        stage('Save Report') {\n" +
                 "            steps {\n" +
-                "                echo '저장된 결과파일을 archiveArtifacts로 저장합니다.'\n" +
                 "                archiveArtifacts artifacts: 'sonarqube-report.html', fingerprint: true\n" +
                 "            }\n" +
                 "        }\n" +
@@ -475,7 +540,6 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "        stage('Build') {\n" +
                 "            steps {\n" +
                 "                script {\n" +
-                "                    echo '빌드 컨테이너에서 빌드를 진행합니다.'\n" +
                 "                    dir(\"${WORKSPACE}\") {\n" +
                 "                        sh \"scripts/build.sh ${HOST_BIND_MOUNT} ${JOB_NAME} ${BUILD_PATH}\"\n" +
                 "                    }\n" +
@@ -539,8 +603,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "    if (!running) {\n" +
                 "        error(\"SonarQube did not start within the expected time.\")\n" +
                 "    }\n" +
-                "}\n" +
-                "\n";
+                "}\n";
     }
 
     @Symbol("greet")
