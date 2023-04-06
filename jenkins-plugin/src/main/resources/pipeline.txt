@@ -40,7 +40,9 @@
                         echo "User provided commit hash: ${TARGET_COMMIT}"
                     }
 
-                    def buildStatusUrl = "${JENKINS_URL}/job/${JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]"
+                    def jobNameSplit = "${JOB_NAME}".split('/')
+                    def newJobName = jobNameSplit[0] + "/job/" + jobNameSplit[1]
+                    def buildStatusUrl = "${JENKINS_URL}/job/${newJobName}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*]]]"
                     def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: "authentication_id", acceptType: 'APPLICATION_JSON')
                     def buildStatusJson = readJSON text: buildStatusResponse.content
 

@@ -15,8 +15,6 @@ import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 
 import javax.servlet.ServletException;
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.Symbol;
@@ -102,9 +100,9 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     private String getBuildResPath(String buildEnv) {
         switch (buildEnv){
             case "maven":
-                return "build/libs/*.jar";
-            case "gradle":
                 return "target/*.jar";
+            case "gradle":
+                return "build/libs/*.jar";
         }
         return "nothing";
     }
@@ -166,7 +164,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     }
 
     public String getRestScript(){
-        return  "  stages {\n" +
+        return  "stages {\n" +
                 "        stage('Set Environment Variables') {\n" +
                 "            steps {\n" +
                 "                script {\n" +
@@ -195,9 +193,9 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "            steps {\n" +
                 "                script {\n" +
                 "                    env.TARGET_COMMIT = \"${COMMIT_HASH}\".trim()\n" +
-                "                    if(\"${TARGET_COMMIT}\" == '') {\n" +
+                "                    if(\"${TARGET_COMMIT}\" == '') { \n" +
                 "                        env.TARGET_COMMIT = sh(script: \"git ls-remote ${GIT_URL} ${params.GIT_BRANCH} | awk '{print \\$1}'\", returnStdout: true).trim()\n" +
-                "                        if(\"${TARGET_COMMIT}\" == '') {\n" +
+                "                        if(\"${TARGET_COMMIT}\" == '') {  \n" +
                 "                            echo \"Can't find target branch's commit hash\"\n" +
                 "                            currentBuild.result = 'ABORTED'\n" +
                 "                            error(\"Build was aborted because the ${GIT_BRANCH} branch doesn't exist.\")\n" +
@@ -208,12 +206,14 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "                        echo \"User provided commit hash: ${TARGET_COMMIT}\"\n" +
                 "                    }\n" +
                 "\n" +
-                "                    def buildStatusUrl = \"${JENKINS_URL}/job/${JOB_NAME}/api/json?tree=allBuilds[result,actions[buildsByBranchName[*[*]]]]\"\n" +
+                "                    def jobNameSplit = \"${JOB_NAME}\".split('/')\n" +
+                "                    def newJobName = jobNameSplit[0] + \"/job/\" + jobNameSplit[1]\n" +
+                "                    def buildStatusUrl = \"${JENKINS_URL}/job/${newJobName}/api/json?tree=builds[number,result,actions[buildsByBranchName[*[*]]]]\"\n" +
                 "                    def buildStatusResponse = httpRequest(url: buildStatusUrl, authentication: \"authentication_id\", acceptType: 'APPLICATION_JSON')\n" +
                 "                    def buildStatusJson = readJSON text: buildStatusResponse.content\n" +
                 "\n" +
                 "                    def commitBuilt = false\n" +
-                "                    for (build in buildStatusJson.allBuilds) {\n" +
+                "                    for (build in buildStatusJson.builds) {\n" +
                 "                        def branchBuildInfo = build.actions.find { it.buildsByBranchName }\n" +
                 "                        if (branchBuildInfo) {\n" +
                 "                            def commitInfo = branchBuildInfo.buildsByBranchName.values().find { it.revision.SHA1.startsWith(\"${TARGET_COMMIT}\") }\n" +
@@ -260,7 +260,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "                script {\n" +
                 "                    // Switch to the master agent\n" +
                 "                    node('master') {\n" +
-                "                        dir(\"../scripts/${LANGUAGE}/${BUILD_ENV}\") {\n" +
+                "                        dir(\"../../scripts/${LANGUAGE}/${BUILD_ENV}\") {\n" +
                 "                            stash name: \"${LANGUAGE}-${BUILD_ENV}\", includes: \"*.sh\"\n" +
                 "                        }\n" +
                 "                    }\n" +
@@ -398,7 +398,19 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "\n" +
                 "                    def qualityGateStatus = qualityGateData['projectStatus']['status']\n" +
                 "\n" +
-                "                    def tableRows = reportData['component']['measures'].collect { measure ->\n" +
+                "                    def measures = reportData['component']['measures']\n" +
+                "                    for (int i = 0; i < measures.size() - 1; i++) {\n" +
+                "                        for (int j = 0; j < measures.size() - i - 1; j++) {\n" +
+                "                            if (measures[j]['metric'].compareTo(measures[j + 1]['metric']) > 0) {\n" +
+                "                                def temp = measures[j]\n" +
+                "                                measures[j] = measures[j + 1]\n" +
+                "                                measures[j + 1] = temp\n" +
+                "                            }\n" +
+                "                        }\n" +
+                "                    }\n" +
+                "                    def sortedMeasures = measures\n" +
+                "\n" +
+                "                    def tableRows = sortedMeasures.collect { measure ->\n" +
                 "                        \"\"\"\n" +
                 "                            <tr>\n" +
                 "                                <td>${measure['metric']}</td>\n" +
@@ -408,50 +420,109 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
                 "                    }.join(\"\")\n" +
                 "\n" +
                 "                    def html = \"\"\"\n" +
-                "                        <html>\n" +
+                "                        <!DOCTYPE html>\n" +
+                "                        <html lang=\"en\">\n" +
                 "                            <head>\n" +
+                "                                <meta charset=\"UTF-8\" />\n" +
+                "                                <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\" />\n" +
+                "                                <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n" +
                 "                                <title>SonarQube Report</title>\n" +
                 "                                <style>\n" +
-                "                                    body {\n" +
-                "                                        font-family: Arial, sans-serif;\n" +
-                "                                    }\n" +
-                "                                    h1 {\n" +
-                "                                        font-size: 24px;\n" +
-                "                                    }\n" +
-                "                                    h2 {\n" +
-                "                                        font-size: 20px;\n" +
-                "                                        margin-bottom: 10px;\n" +
-                "                                    }\n" +
-                "                                    table {\n" +
-                "                                        border-collapse: collapse;\n" +
-                "                                        width: 100%;\n" +
-                "                                    }\n" +
-                "                                    th, td {\n" +
-                "                                        border: 1px solid #ddd;\n" +
-                "                                        padding: 8px;\n" +
-                "                                        text-align: left;\n" +
-                "                                    }\n" +
-                "                                    th {\n" +
-                "                                        background-color: #f2f2f2;\n" +
-                "                                        font-weight: bold;\n" +
-                "                                    }\n" +
+                "                                body {\n" +
+                "                                    font-family: Arial, sans-serif;\n" +
+                "                                    display: flex;\n" +
+                "                                    flex-direction: column;\n" +
+                "                                    justify-content: center;\n" +
+                "                                    align-items: center;\n" +
+                "                                    color: #212529;\n" +
+                "                                    position: relative;\n" +
+                "                                    height: 100vh;\n" +
+                "                                    background-color: #e9ecef;\n" +
+                "                                }\n" +
+                "                                .container {\n" +
+                "                                    display: flex;\n" +
+                "                                    flex-direction: column;\n" +
+                "                                    justify-content: center;\n" +
+                "                                    align-items: center;\n" +
+                "                                    padding: 28px;\n" +
+                "                                    background-color: #fff;\n" +
+                "                                    border-radius: 9px;\n" +
+                "                                    position: absolute;\n" +
+                "                                    top: 50%;\n" +
+                "                                    left: 50%;\n" +
+                "                                    transform: translate(-50%, -50%);\n" +
+                "                                }\n" +
+                "                                h1 {\n" +
+                "                                    font-size: 36px;\n" +
+                "                                    margin-top: 8px;\n" +
+                "                                    margin-bottom: 18px;\n" +
+                "                                }\n" +
+                "                                h2 {\n" +
+                "                                    font-size: 24px;\n" +
+                "                                    margin-bottom: 10px;\n" +
+                "                                    border: 2px solid black;\n" +
+                "                                    padding: 12px 24px;\n" +
+                "                                    border-radius: 5px;\n" +
+                "                                }\n" +
+                "                                h2 span {\n" +
+                "                                    color: #40c057;\n" +
+                "                                    font-size: 28px;\n" +
+                "                                }\n" +
+                "                                h3 {\n" +
+                "                                    font-size: 20px;\n" +
+                "                                    margin-bottom: 8px;\n" +
+                "                                }\n" +
+                "                                table {\n" +
+                "                                    border-collapse: collapse;\n" +
+                "                                    width: 75vw;\n" +
+                "                                    max-width: 400px;\n" +
+                "                                    margin: 0 auto;\n" +
+                "                                    table-layout: fixed;\n" +
+                "                                    border: 2px solid #212529;\n" +
+                "                                    border-radius: 9px;\n" +
+                "                                }\n" +
+                "                                th,\n" +
+                "                                td {\n" +
+                "                                    border: 1px solid #ddd;\n" +
+                "                                    padding: 8px;\n" +
+                "                                    text-align: center;\n" +
+                "                                    /* column-width: 100px; */\n" +
+                "                                    border: 2px solid #212529;\n" +
+                "                                }\n" +
+                "                                th {\n" +
+                "                                    background-color: #dee2e6;\n" +
+                "                                    font-weight: bold;\n" +
+                "                                }\n" +
+                "                                tr td:nth-of-type(2) {\n" +
+                "                                    color: #40c057;\n" +
+                "                                    background-color: #ebfbee;\n" +
+                "                                    font-weight: 700;\n" +
+                "                                    font-size: 18px;\n" +
+                "                                }\n" +
+                "                                tr:nth-of-type(3) td:nth-of-type(2),\n" +
+                "                                tr:nth-of-type(10) td:nth-of-type(2) {\n" +
+                "                                    color: #ff922b;\n" +
+                "                                    background-color: #fff4e6;\n" +
+                "                                }\n" +
                 "                                </style>\n" +
                 "                            </head>\n" +
                 "                            <body>\n" +
+                "                                <div class=\"container\">\n" +
                 "                                <h1>SonarQube Report</h1>\n" +
-                "                                <h2>SonarQube Quality Gate Status: ${qualityGateStatus}</h2>\n" +
-                "                                <h2>Report Data</h2>\n" +
+                "                                <h2>Quality Gate Status: <span>OK</span></h2>\n" +
+                "                                <h3>Report Data</h3>\n" +
                 "                                <table>\n" +
                 "                                    <thead>\n" +
-                "                                        <tr>\n" +
-                "                                            <th>Metric</th>\n" +
-                "                                            <th>Value</th>\n" +
-                "                                        </tr>\n" +
+                "                                    <tr>\n" +
+                "                                        <th>Metric</th>\n" +
+                "                                        <th>Value</th>\n" +
+                "                                    </tr>\n" +
                 "                                    </thead>\n" +
                 "                                    <tbody>\n" +
-                "                                        ${tableRows}\n" +
+                "                                    ${tableRows}\n" +
                 "                                    </tbody>\n" +
                 "                                </table>\n" +
+                "                                </div>\n" +
                 "                            </body>\n" +
                 "                        </html>\n" +
                 "                    \"\"\"\n" +
