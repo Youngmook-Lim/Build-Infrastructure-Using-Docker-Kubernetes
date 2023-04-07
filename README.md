@@ -117,13 +117,16 @@
 
 - **김성태**
 
+  - Ansible Node 추가/삭제 기능 구현
+  - 전체 아키텍처 설계 및 구성
   - Pipeline의 Build Stage 작성
   - Build용 컨테이너 제작
 
 - **김성한**
 
-  - Jenkins Plugin 개발
-  - Build Job 생성 로직
+  - Jenkins Plugin(Pipeline Generator) 개발
+  - 각 서버 Node Exporter 구성
+  - Grafana & Prometheus 연동을 통한 서버 모니터링
 
 - **양희제**
 
@@ -132,8 +135,9 @@
 
 - **장재욱**
 
-  - Jenkins Plugin 개발
-  - Permission 부여 로직
+  - AWS 인스턴스 관리
+  - Jenkins Plugin(Pipeline Generator) 개발
+  - Grafana & Prometheus 연동을 통한 서버 모니터링
 
 - **한상우 (발표자)**
   - 동일 Build 요청 감지 로직
