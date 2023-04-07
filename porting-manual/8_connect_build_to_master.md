@@ -1,6 +1,6 @@
 ![header](https://capsule-render.vercel.app/api?type=waving&color=auto&height=300&section=header&text=Connect Build to Master&fontSize=70)
 
-## 1. Kubernetes 초기화 및 Worker Node 연결을 위한 Ansible-Playbook 파일 생성
+## Kubernetes 초기화 및 Worker Node 연결을 위한 Ansible-Playbook 파일 생성
 
 ```
 vi /home/ansible-playbooks/playbook-init-k8s.yml
@@ -116,7 +116,7 @@ vi /home/ansible-playbooks/playbook-init-k8s.yml
 15. 사용자의 홈 디렉토리에 작업 공간 디렉토리를 생성합니다.
 16. 이전에 저장된 kubeadm join 명령을 실행하여 작업자 노드를 Kubernetes 클러스터에 조인합니다.
 
-## 3. Kubernetes 초기화를 위한 Ansible Playbook 실행
+### Kubernetes 초기화를 위한 Ansible Playbook 실행
 
 ```
 ansible-playbook /home/ansible-playbooks/playbook-init-k8s.yml
@@ -124,4 +124,4 @@ ansible-playbook /home/ansible-playbooks/playbook-init-k8s.yml
 
 ![image](https://user-images.githubusercontent.com/89143804/229374115-af092cd2-64dc-4a9c-854b-64ab38b06d47.png)
 
-- 완료 시 k8s-master에 build-1~3 서버들이 worker node로 등록됩니다.정상적으로 등록되었다면 [다음 단계로 이동(업뎃 필요)]()해주세요.
+- 완료 시 k8s-master에 build-1~3 서버들이 worker node로 등록됩니다.정상적으로 등록되었다면 [다음 단계로 이동](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/develop/porting-manual/9_deployment_and_service_jenkins_agent.md)해주세요.

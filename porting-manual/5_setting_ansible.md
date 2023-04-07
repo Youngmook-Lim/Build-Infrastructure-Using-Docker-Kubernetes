@@ -97,4 +97,4 @@ ssh-copy-id -i ~/.ssh/id_rsa.pub ubuntu@[k8s master 또는 빌드 서버 IP]
 
 ![image](https://user-images.githubusercontent.com/89143804/229356337-937ad8e9-a4b5-4f97-ab99-1a8e8099969c.png)
 
-- 나머지 서버에도 위 과정을 반복합니다. 완료하였다면 [다음 단계로 이동(업뎃 필요)]()해주세요.
+- 나머지 서버에도 위 과정을 반복합니다. 완료하였다면 [다음 단계로 이동](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/develop/porting-manual/6_install_docker_to_others.md)해주세요.

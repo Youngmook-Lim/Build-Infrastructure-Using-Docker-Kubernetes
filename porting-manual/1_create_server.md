@@ -50,4 +50,4 @@
 
 ![image](https://user-images.githubusercontent.com/89143804/229323282-21ae8069-e1c0-49e5-b9e8-22f385394e09.png)
 
-6. 생성 버튼을 클릭합니다. 좌측 메뉴 바에 "인스턴스 > 인스턴스"를 클릭하여 인스턴스가 정상적으로 생성되는 것을 확인 후 [다음 단계로 이동(업뎃 필요)]()해주세요.
+6. 생성 버튼을 클릭합니다. 좌측 메뉴 바에 "인스턴스 > 인스턴스"를 클릭하여 인스턴스가 정상적으로 생성되는 것을 확인 후 [다음 단계로 이동](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/develop/porting-manual/2_install_docker_to_main.md)해주세요.

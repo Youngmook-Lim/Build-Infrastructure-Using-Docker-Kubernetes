@@ -52,4 +52,4 @@ docker logs jenkins-server
 - 아래와 같은 Dashboard가 나올 시 설정이 완료된 것입니다.
   ![image](https://user-images.githubusercontent.com/89143804/229354914-183f520d-4cc0-4fee-97a0-03f061d7e618.png)
 
-여기까지 진행하셨다면 [다음 단계로 이동(업뎃 필요)]()해주세요.
+여기까지 진행하셨다면 [다음 단계로 이동](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/develop/porting-manual/4_install_ansible.md)해주세요.

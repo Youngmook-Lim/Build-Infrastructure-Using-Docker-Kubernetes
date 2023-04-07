@@ -68,4 +68,4 @@ EOF
 sh add-agent.sh <agent 주소> <agent ssh 포트> <agent 이름> <agent 레이블> <credential ID>
 ```
 
-- 완료 시 지정된 구성의 새 Jenkins Agent 노드가 생성되고 SSH를 통해 Jenkins 서버에 연결됩니다.정상적으로 완료되었다면 [다음 단계로 이동(업뎃 필요)]()해주세요.
+- 완료 시 지정된 구성의 새 Jenkins Agent 노드가 생성되고 SSH를 통해 Jenkins 서버에 연결됩니다.

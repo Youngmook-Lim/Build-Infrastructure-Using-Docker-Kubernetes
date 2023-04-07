@@ -89,4 +89,4 @@ ansible-playbook /home/ansible-playbooks/playbook-install-docker.yml
 
 ![image](https://user-images.githubusercontent.com/89143804/229357387-2a03ea69-57fb-4a6e-b639-4b859949a01a.png)
 
-- 완료 시 k8s-master, build-1~3 서버에 Docker가 설치됩니다. 정상적으로 설치되었다면 [다음 단계로 이동(업뎃 필요)]()해주세요.
+- 완료 시 k8s-master, build-1~3 서버에 Docker가 설치됩니다. 정상적으로 설치되었다면 [다음 단계로 이동](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/develop/porting-manual/7_install_k8s.md)해주세요.

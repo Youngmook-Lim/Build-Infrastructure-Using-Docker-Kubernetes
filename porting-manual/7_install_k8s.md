@@ -88,4 +88,4 @@ ansible-playbook /home/ansible-playbooks/playbook-install-k8s.yml
 
 ![image](https://user-images.githubusercontent.com/89143804/229373748-dd44eda3-cf3a-4583-bd9e-a63948b04155.png)
 
-- 완료 시 k8s-master, build-1~3 서버에 K8s 및 구성 요소가 설치됩니다. 정상적으로 설치되었다면 [다음 단계로 이동(업뎃 필요)]()해주세요.
+- 완료 시 k8s-master, build-1~3 서버에 K8s 및 구성 요소가 설치됩니다. 정상적으로 설치되었다면 [다음 단계로 이동](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/develop/porting-manual/8_connect_build_to_master.md)해주세요.
