@@ -744,4 +744,577 @@ EOF
 sh add-agent.sh <agent 주소> <agent ssh 포트> <agent 이름> <agent 레이블> <credential ID>
 ```
 
-##
+---
+
+# Jenkins-Plugin
+
+이번 연계 프로젝트에서 Jenkins Plugin을 직접 개발해 사용해야 하는 부분이 생겼다.
+
+자세하게는 언급할 수 없지만 간단하게 이야기하면 앞으로 개발할 플러그인의 기능은 화면단에서 원하는 input 값을 받아 그 input 값으로 Jenkins Pipeline을 구축해 Job으로 등록한다.
+
+input 값의 형태는 String 값을 받고, jenkins plugin documentation을 최대한 참고하여 제작할 계획이다.
+
+[https://www.jenkins.io/doc/developer/tutorial/](https://www.jenkins.io/doc/developer/tutorial/ "Jenkins Plugin Docuimentation")
+
+[Plugin Tutorial www.jenkins.io](https://www.jenkins.io/doc/developer/tutorial/)
+
+## 0\. 들어가면서...
+
+- 시작하기에 앞서 앞으로의 진행과정은 Jenkins Plugin 공식문서에 기반하여 어떻게 진행했는지 흐름을 작성해나갈 계획이다.
+- 위의 Document를 보며 진행하면 도움이 될 것 같다라고라고라파덕.
+
+## 1\. Java 및 Maven 설치
+
+- Java Version은 Jenkins 에서의 권장버전인 11버전을 설치했다.
+- Maven Version 또한 권장 버전인 3버전을 사용했다.
+  - (Jenkins에서는 Maven 버전의 경우 3.8.3 보다 최신버전을 사용하는 것을 이상적이라고 한다.)
+
+각각의 설치 이후 버전을 확인해준다.
+
+```
+$ java --version
+$ mvn --version
+```
+
+## 2\. IDE 준비
+
+- Jenkins에서 추천하는 IDE로는 크게 `NetBeans` `IntelliJ IDEA` `Eclipse` 가 있다.
+- 인텔리제이를 선택했다.(Ultimate 버전을 사용한다.)
+
+## 3\. Skeleton 코드를 포함한 프로젝트 생성
+
+- 본인은 혼자 진행하는 과정에서 여기서 애를 좀 먹었다.
+- 이전 튜토리얼에서는 IDE 를 설치 후 간단하게 프로젝트를 생성하는 예제가 있었는데 해당 예제 프로젝트 경로에서 아래의 명령어를 치면 pom.xml 파일의 중복으로 에러가 발생한다.
+- 정리하자면 그냥 새로 생성할 디렉토리를 잡아 그곳에서 아래의 명령어를 통해 Jenkins Plugin Skeleton 프로젝트를 생성하자.
+
+```
+mvn -U archetype:generate -Dfilter="io.jenkins.archetypes:"
+```
+
+- 위의 명령어를 입력하면 archetype을 설정하라는 내용이 나타나는데 본인은 4번 타입(Skeleton of a Jenkins plugin with a POM and an example build step.) 을 선택했고 버전의 경우 가장 최신버전으로 나타나는 17버전을 사용했다.
+- 이후 프로젝트가 생성되는데 아래의 명령어를 따라 mvn verify를 실행한다.
+  - 혹시 mvn verify 가 궁금하다면 아래의 더보기를 클릭해보도록 하자.
+
+더보기
+
+mvn verify 명령어를 실행하면 다음과 같은 일들이 발생한다.
+
+1.  Maven은 프로젝트의 소스 코드를 가져와 컴파일한다.
+2.  컴파일된 코드에 대해 단위 테스트를 수행한다.
+3.  단위 테스트를 통과한 코드에 대해 패키징을 수행한다.
+4.  패키징된 코드에 대해 통합 테스트를 수행한다.
+5.  통합 테스트를 통과한 코드에 대해 검증을 수행한다. 이 과정에서는 코드의 정적 분석, 문서 생성, 리소스 복사 등의 작업이 수행된다.
+6.  검증을 마친 후, 빌드 결과물이 로컬 레파지토리에 설치된다.
+
+즉, mvn verify 명령어를 실행하면, 프로젝트의 소스 코드가 올바르게 빌드되고 검증되어 완전하고 신뢰성 높은 빌드 결과물이 생성된다.
+
+\- 아래의 명령어를 순차적으로 입력한다.
+
+```
+$ mv demo demo-plugin
+$ cd demo-plugin
+$ mvn verify
+```
+
+## 4\. 빌드 및 실행
+
+- 3번 과정을 통해 `mvn verify` 까지 성공했다면 이후 아래 명령어를 통해 프로젝트를 실행한다.
+
+```
+$ mvn hpi:run
+```
+
+- 위의 명령어에 있어서 옵션을 통해 노출할 포트를 변경할 수 있다. Ex) `mvn hpi:run -Dport=5000`
+- 해당 과정이 정상적으로 이루어졌다면 젠킨스 플러그인을 통해 개발할 준비가 완료된 것이다.
+
+## 5. ## 젠킨스 플러그인 코드 (주요 부분)
+
+- 젠킨스 플러그인에서 구현해야할 사항은 크게 나눠보면 UI와 내부 기능이 있다.
+- 기존 프론트엔드 프로젝트와 비교했을때 UI ⇒ HTML,CSS, Function ⇒ Javascript로 나눌 수 있다고하면 Jenkins 플러그인에서의 UI는 Jelly 파일을 통해 작성하고, 기능은 Java 클래스에 정의할 수 있다.
+
+<br />
+
+### UI : Jelly File
+
+- 먼저 UI 부분에서 Jenkins Plugin의 경우 Jelly 파일을 이용해 UI를 작성한다.
+- 이때 UI에서 발생하는 이벤트로직 처리는 Javascript를 이용해서 구현했다.
+- XML 파일의 특성상 `<` 혹은 `>` 문자열의 경우 태그로 인식하기 때문에 javascript 코드에서 기존 사용하던 >, < 대소비교는 사용할 수 없었다.
+  - 특이하게도 화살표함수는 사용할 수 있었으나 최대한 한정된 Javascript 문법으로 UI 이벤트 로직을 구현할 수 있는 선에서 필요한 기능들을 구현하였다.
+
+<br />
+
+```html
+<?jelly escape-by-default='true'?>
+<j:jelly
+  xmlns:j="jelly:core"
+  xmlns:st="jelly:stapler"
+  xmlns:d="jelly:define"
+  xmlns:l="/lib/layout"
+  xmlns:t="/lib/hudson"
+  xmlns:f="/lib/form"
+>
+  <f:entry title="${%Pipeline Job Name}" field="name" class="nameField">
+    <input
+      type="text"
+      name="name"
+      class="jenkins-input"
+      onchange="handleChange(event,0)"
+    />
+    <div class="nameErr errTxt"></div>
+  </f:entry>
+  <f:entry title="${%GitURL}" field="gitUrl">
+    <input
+      type="text"
+      name="gitUrl"
+      class="jenkins-input"
+      onchange="handleChange(event,1)"
+    />
+    <div class="urlErr errTxt"></div>
+  </f:entry>
+  <f:entry title="${%Commit Hash}" field="commitHash">
+    <input
+      type="text"
+      name="commitHash"
+      class="jenkins-input"
+      onchange="handleChangeCommitHash(event)"
+    />
+  </f:entry>
+  <f:entry title="${%Branch}" field="branch">
+    <input
+      type="text"
+      name="branch"
+      class="jenkins-input"
+      onchange="handleChange(event,2)"
+    />
+    <div class="branchErr errTxt"></div>
+  </f:entry>
+  <f:entry title="${%Build Path}" field="buildPath">
+    <input
+      type="text"
+      name="buildPath"
+      class="jenkins-input"
+      onchange="handleChange(event,3)"
+    />
+    <div class="buildPathErr errTxt"></div>
+  </f:entry>
+  <f:entry title="${%Language}" field="language">
+    <select
+      class="jenkins-input"
+      name="language"
+      onchange="handleChange(event,4)"
+    >
+      <option value="">Select Language</option>
+      <option value="java">Java</option>
+      <option value="c">C</option>
+      <option value="c++">C++</option>
+      <option value="csharp">C#</option>
+    </select>
+    <div class="languageErr errTxt"></div>
+  </f:entry>
+  <f:entry title="${%Build Environment}" field="buildEnv">
+    <select
+      class="jenkins-input buildEnvSelect"
+      name="buildEnv"
+      onchange="handleChange(event,5)"
+    >
+      <option value="">Select Build Environment</option>
+    </select>
+    <div class="buildEnvErr errTxt"></div>
+  </f:entry>
+
+  <script>
+    document
+      .getElementsByTagName("form")[1]
+      .addEventListener("submit", (event) => {
+        // submit event 등록
+        const hasEmptyValue = variables.some((v) => v === null || v === "");
+        if (hasEmptyValue) {
+          event.preventDefault();
+          alert("입력되지 않은 값이 존재합니다. 다시 한번 확인해주세요.");
+          return;
+        }
+      });
+
+    const buildEnvObject = {
+      java: [{ Maven: "maven" }, { Gradle: "gradle" }],
+      c: [{ "Temp C Build Env": "cbuildenv" }],
+      "c++": [{ "Temp C++ Build Env": "c++buildenv" }],
+      csharp: [{ MSBuild: "msbuild" }],
+    };
+
+    let commitHash = null;
+    const variables = [null, null, null, null, null, null];
+    const types = [
+      "nameErr",
+      "urlErr",
+      "branchErr",
+      "buildPathErr",
+      "languageErr",
+      "buildEnvErr",
+    ];
+    const errTexts = {
+      nameErr: "Please set a job name",
+      urlErr: "Please set a git URL",
+      branchErr: "Please set a branch",
+      buildPathErr: "Please set a build path",
+      languageErr: "Please select a language",
+      buildEnvErr: "Please select a build environment",
+    };
+
+    variables.map((v, i) => {
+      const node = document.getElementsByClassName(types[i])[0];
+      if (v === null || v === "") {
+        if (node) {
+          node.innerText = errTexts[types[i]];
+        }
+      }
+    });
+
+    function handleChange(event, type) {
+      variables[type] = event.target.value;
+      if (variables[type] === null || variables[type] === "") {
+        document.getElementsByClassName(types[type])[0].innerText =
+          errTexts[types[type]];
+      } else {
+        document.getElementsByClassName(types[type])[0].innerText = "";
+        if (type === 4) setBuildEnvOptions(event.target.value);
+      }
+    }
+
+    function setBuildEnvOptions(selectedLang) {
+      const buildList = buildEnvObject[selectedLang];
+      const select = document.getElementsByClassName("buildEnvSelect")[0];
+      const defaultOp = document.createElement("option");
+
+      select.innerHTML = "";
+      defaultOp.innerText = "Select Build Environment";
+      defaultOp.value = "";
+      select.appendChild(defaultOp);
+
+      buildList.map((meta) => {
+        const option = document.createElement("option");
+        const key = Object.keys(meta)[0];
+        const value = meta[key];
+
+        option.innerText = key;
+        option.value = value;
+
+        select.appendChild(option);
+      });
+    }
+
+    function handleChangeCommitHash(event) {
+      commitHash = event.target.value;
+    }
+  </script>
+
+  <style>
+    .errTxt {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</j:jelly>
+```
+
+- Form 태그에서는 사용자로부터 다음과 같은 값들을 입력받는다.
+
+  - Job Name
+  - Git URL
+  - Commit Hash
+  - Branch
+  - BuildPath
+  - Language
+  - BuildEnv
+
+- 그 외의 Javascript 코드는 값이 비었을때와 각각의 값에 대한 Validation 역할을 수행한다.
+
+### Message.properties
+
+- Message 클래스내 .properties 파일에서는 표시할 메세지들을 미리 정의할 수 있다.
+
+<span align="center">
+
+![](./assets/msgPorperties.png)
+
+</span>
+
+### help.html
+
+- 각각의 파라미터에 대한 부가 설명에 대한 help-\*.html 파일들은 resource 하위에 config.jelly와 같은 레이어에 위치한다.
+
+<span align="center">
+
+![](./assets/help.png)
+
+</span>
+
+### Java 기능부
+
+- 다음 부터는 java의 기능 부분 역할이다.
+
+```java
+@Override
+    public void perform(Run<?, ?> run, FilePath workspace, EnvVars env, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
+
+        Jenkins jenkinsInstance = Jenkins.get();
+        if(name.equals("") || gitUrl.equals("") || language.equals("") || buildEnv.equals("") || branch.equals("") || buildPath.equals("")) {
+            listener.getLogger().println("The build failed. A required input value is empty.");
+            WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
+            job.makeDisabled(true);
+            return;
+        }
+
+        String jobName = run.getParent().getDisplayName();
+
+        // Gets the logged in username.
+        String currentUsername=jobName.split("-")[0];
+        Folder userFolder;
+        try {
+            userFolder = getUserFolder(currentUsername);
+        } catch (IOException e) {
+            e.printStackTrace(listener.error("사용자 폴더를 가져오거나 생성하는데 실패했습니다."));
+            return;
+        }
+
+        // check job name duplication
+        TopLevelItem jobItem = userFolder.getItem(currentUsername+"-"+name);
+        if (jobItem != null) {
+            listener.getLogger().println("Job with this name already exists: " + name);
+//            WorkflowJob job = jenkinsInstance.createProject(WorkflowJob.class, name);
+//            job.makeDisabled(true);
+            // ???
+            return;
+        }
+
+        // Create a new Pipeline Job
+        try {
+            TopLevelItem item = userFolder.createProject(WorkflowJob.class, currentUsername+"-"+language+"-"+name);
+            if (item instanceof WorkflowJob) {
+                WorkflowJob job = (WorkflowJob) item;
+                job.setDefinition(new CpsFlowDefinition(generateScript(), true));
+                job.save();
+                job.scheduleBuild2(0).waitForStart();
+            } else {
+                listener.getLogger().println("Creating a new pipeline job failed.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace(listener.error("Creating a new pipeline job failed."));
+        }
+    }
+```
+
+- perform 메서드에서는 사용자로부터 각각의 Parameter를 받아 값이 제대로 전달 되었는지 검증한다.
+- 이후 해당 유저에 대한 Job 폴더를 가져오거나 생성하고, 이후 해당 폴더 내에 새로운 pipeline job을 등록한다.
+- 우리의 서비스의 경우 freestyle job으로 등록된 Pipeline Generator를 통해서 해당 Pipeline Job을 등록하는 방식으로 작동하기 때문에 Pipeline Job을 생성하고 빌드를 수행하는 코드도 포함된다.
+
+- 또한 pipeline 스크립트의 경우 getRestScript 메서드를 통해 가져오며 return 값으로 사용자 파라미터 값이 적용된 script를 반환한다.
+
+<span align="center">
+
+![](./assets/getScript.png)
+
+</span>
+
+### 권한 설정 관련 Groovy File
+
+```groovy
+import jenkins.model.Jenkins
+import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy
+import com.michelin.cio.hudson.plugins.rolestrategy.Role
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType
+import hudson.security.Permission
+import hudson.model.User
+import hudson.model.FreeStyleProject
+import com.cloudbees.hudson.plugins.folder.Folder
+
+Jenkins jenkins = Jenkins.get()
+authorizationStrategy=jenkins.getAuthorizationStrategy()
+rbas=(RoleBasedAuthorizationStrategy) authorizationStrategy
+
+def users = User.getAll()
+
+ItemRoleMap = rbas.getRoleMaps()[RoleType.Project]
+Set<Permission> userPermissions = Permission.getAll().toSet()
+
+def roleLength = ItemRoleMap.getRoles().size()
+def userLength = users.size()
+
+if(roleLength != userLength){
+    println "A new user has signed up. Renew authentication."
+    users.each { user ->
+        def itemRolePattern = "${user.getId()}-.*"
+        def userName = "${user.getId()}"
+        def itemRole = new Role(userName, itemRolePattern, userPermissions)
+        ItemRoleMap.addRole(itemRole)
+        ItemRoleMap.assignRole(itemRole,user.getId())
+        def jobName= userName+"-PipelineGenerator"
+        def folderName= userName+"-folder"
+        // Check if freestyle job exists with user's ID as name
+        if (!jenkins.getItemByFullName(folderName, Folder.class)) {
+            // Create new folder  & job
+            def folder = jenkins.createProject(Folder.class, folderName)
+            folder.save()
+            def job = folder.createProject(FreeStyleProject.class, jobName)
+            job.setDescription("Pipeline Generator입니다. Pipeline Generator build step을 수정 후 빌드하세요.")
+            job.save()
+            println userName +" has signed up"
+        }
+    }
+    jenkins.setAuthorizationStrategy(rbas)
+}else{
+    println "There are no new users."
+}
+```
+
+- 권한 설정의 경우 해당 groovy 스크립트를 admin에서 실행하는 job을 생성하여 주기적으로 실행한다.
+- 이때 1분 주기로 해당 스크립트가 동작하며 새롭게 추가된 유저에 대한 권한을 설정하고 폴더와 Pipeline Generator를 추가해준다.
+
+---
+
+## Grafana & Prometheus
+
+- 우리가 구축한 Build Infra에는 총 5개의 EC2 인스턴스를 사용한다. 그중에서도 우리가 지켜봐야할 서버자원은 총 4개로 Build1,2,3 서버와 Kubernetes Master서버(이한 k8s master)의 상태를 모니터링 해야한다.
+
+- 전체 적인 구상은 이렇다.
+  - 각각의 서버 4대(build 1,2,3, k8s-master)에 Node-Exporter(서버의 자원 상태를 Prometheus에게 전송해 줌)를 설치하고 prometheus에서 node-exporter들로부터 시계열 데이터를 수집한다.
+  - 이후 grafana에서 datasource로 prometheus를 등록하고 해당 prometheus에서 수집된 데이터를 사용자에게 시각화하여 모니터링 할 수 있도록 한다.
+- 초기 yaml파일을 활용한 직접 설정을 계획하고 구축했으나, 각각의 툴들의 연동을 하는 과정에서 이상이 있어 결국 Helm(Kubernetes Package Manager)을 사용하여 Prometheus 관련 툴들을 설치하였다.
+
+- 이때 필요사항으로는
+  - Kubernetes 1.16이상
+  - Helm 3이상
+  이다.
+- 다음 과정들은 k8s-master서버에서 수행되었다.
+
+1. **Prometheus 공식 Github에 있는 레포지토리를 helm을 이용하여 추가**
+
+```shell
+$ helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+$ helm repo update
+```
+
+2. **Prometheus 환경을 구성할 수 있는 kube-prometheus-stack을 pull**
+
+```bash
+$ helm pull prometheus-community/kube-prometheus-stack
+```
+
+3. **pull 받은 압축파일 압축 해제**
+
+```bash
+$ tar xvfz kube-prometheus-stack-42.3.0.tgz
+```
+
+4. \***\*values.yaml 설정\*\***
+
+- 우리가 구축한 Build Infra의 경우 values.yaml에서 설정할 것들이 몇가지 존재했다. 우선 Grafana의 adminPassword를 수정하였다.
+- 또한 가장 상위에 존재하는 values.yaml의 경우 prometheus Service의 type 이 ClusterIP로 되어있었기 떄문에 외부에서 접근이 불가능했다. 따라서 해당 부분을 NodePort 타입으로 변경하였다.
+
+<span align="center">
+
+![](./assets/value1.png)
+
+</span>
+
+- 같은 이유로 grafana 폴더 내 values.yaml에서도 grafana Service의 타입을 NodePort로 정의하여 외부에서도 접근할 수 있게끔 수정하였다.
+
+<span align="center">
+
+![](./assets/value2.png)
+
+</span>
+
+5. \***\*kube-prometheus-stack 설치\*\***
+
+```bash
+$ helm install prometheus . -n monitoring -f values.yaml
+```
+
+- 위의 명령어를 수행하면 설정한 values.yaml파일을 기반으로 프로메테우스 관련 툴들이 클러스터 전반에 걸쳐 실행된다.
+- 이후 각각의 띄워진 주소는 아래와 같다.
+  - Grafana : [http://52.78.18.204:31000/](http://52.78.18.204:31000/)
+  - Prometheus : [http://15.165.217.62:30090/](http://15.165.217.62:30090/)
+
+---
+
+## NginX
+
+- DaeGuOps 빌드인프라는 두개의 진입점이 존재한다.
+  - 사용자가 접속해 빌드인프라를 활용할 Jenkins Page
+  - 관리자가 접속해 빌드인프라의 서버 상태를 모니터링할 grafana 페이지
+- 두개의 서버를 접속함에 있어 WebServer 설정을 해야했고 각각은 / 와 /monitoring 을 통해 프록시 한다.
+
+  - Main 페이지(Jenkins) : [https://j8s003.p.ssafy.io](https://j8s003.p.ssafy.io)
+  - Monitoring 페이지 (grafana) : [https://j8s003.p.ssafy.io/monitoring](https://j8s003.p.ssafy.io/monitoring)
+
+- NginX Config File
+
+```shell
+upstream jenkins {
+    server 127.0.0.1:8080;
+}
+
+upstream monitoring {
+    server 52.78.18.204:31000;
+}
+
+server {
+        listen 80;
+        server_name j8s003.p.ssafy.io;
+
+        location / {
+                return 308 https://$host$request_uri;
+        }
+}
+
+server {
+        listen 443 ssl;
+        server_name j8s003.p.ssafy.io;
+
+        ssl_certificate /etc/letsencrypt/live/j8s003.p.ssafy.io/fullchain.pem; # managed by Certbot
+        ssl_certificate_key /etc/letsencrypt/live/j8s003.p.ssafy.io/privkey.pem; # managed by Certbot
+        include /etc/letsencrypt/options-ssl-nginx.conf;
+        ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+        location /monitoring/ {
+                rewrite ^/monitoring(/.*)$ $1 break;
+                proxy_pass http://monitoring;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_redirect off;
+        }
+
+        location / {
+                proxy_pass http://jenkins;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+}
+```
+
+- Grafana Root URL 설정
+
+<span align="center">
+
+![](./assets/grafana%20value.png)
+
+</span>
+
+- 위 파일과 grafana환경에서의 value.yaml 내의 root_url 설정을 통해 리버스 프록시를 해주었고, 그 결과는 아래와 같다.
+
+<span align="center">
+
+![](./assets/jenkinsURL.png)
+
+</span>
+
+<span align="center">
+
+![](./assets/grafanaURL.png)
+
+</span>
+
+---
