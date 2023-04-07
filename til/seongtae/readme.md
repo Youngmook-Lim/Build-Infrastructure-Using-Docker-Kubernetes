@@ -63,3 +63,32 @@ sh add-agent.sh <agent 주소> <agent ssh 포트> <agent 이름> <agent 레이�
 ```
 
 
+---
+
+C/C++ cmake(CMakeLists.txt가 있을때)
+
+이미지 alpine 기반
+```Dockerfile
+FROM alpine
+RUN apk add --no-cache gcc g++ clang make cmake
+```
+
+```sh
+docker build -t c-cpp .
+```
+
+buildpath에서 실행
+```sh
+docker run -v ./:/root/workspace c-cpp sh -c "cd /root/workspace;mkdir build && cd build;cmake ..;make;rm CMakeCache.txt Makefile cmake_install.cmake;rm -rf CMakeFiles;"
+```
+
+buildpath/build 안에있는 모든파일 artifacts archieve로 배포 하면 끝
+
+C/C++ make(Makefile이 있을때)
+
+buildpath에서 실행
+```
+docker run -v ./:/root/workspace c-cpp sh -c "cd /root/workspace;make;"
+```
+
+buildpath에 있는 

@@ -1,0 +1,28 @@
+---
+- name: Configure swapoff and containerd resource management
+  hosts: join-node
+  become: true
+
+  tasks:
+  - name: Disable swap
+    command: swapoff -a
+
+  - name: Enable containerd service
+    systemd:
+      name: containerd
+      enabled: true
+      masked: false
+      state: started
+
+  - name: make containerd's default config
+    shell: containerd config default > /etc/containerd/config.toml
+
+  - name: change containerd resource management
+    shell: sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
+    notify: restart containerd
+
+  handlers:
+  - name: restart containerd
+    systemd:
+      name: containerd
+      state: restarted
