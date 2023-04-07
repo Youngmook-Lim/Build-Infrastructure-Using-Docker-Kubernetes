@@ -1,18 +1,19 @@
 #!/bin/sh
 
-# credential을 불러온다.
-. ./jenkins-cli-credential
+JENKINS_URL=$1
+JENKINS_USER=$2
+JENKINS_PASSWORD=$3
 
 # 새로 생성할 노드 정보
-NODE_NAME=$3
-NODE_DESCRIPTION=$3
-NODE_LABELS=$4
+NODE_NAME=$6
+NODE_DESCRIPTION=$6
+NODE_LABELS=$7
 REMOTE_FS=/home/jenkins
 
 # SSH 에이전트 정보
-SSH_ADDRESS=$1
-SSH_PORT=$2
-CREDENTIAL_ID=$5
+SSH_ADDRESS=$4
+SSH_PORT=$5
+CREDENTIAL_ID=$8
 
 # Jenkins CLI를 사용하여 새로운 노드를 생성합니다.
 java -jar jenkins-cli.jar -s $JENKINS_URL -auth "$JENKINS_USER:$JENKINS_PASSWORD" create-node $NODE_NAME << EOF

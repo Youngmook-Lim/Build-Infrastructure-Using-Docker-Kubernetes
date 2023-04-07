@@ -44,11 +44,11 @@ while read -r line; do
         join_node_section=false
     elif [[ $join_node_section == true ]]; then
         ip_address="${line##*@}"
-        java -jar jenkins-cli/jenkins-cli.jar -s $url delete-agent "agent-$ip_address"
+        java -jar jenkins-cli/jenkins-cli.jar -s $url -auth "$id:$password" delete-node "agent-$ip_address"
     fi
 done < "delete-node"
 
-awk 'BEGIN {delete_section=0} /^[\[][join-node][\]]/ {delete_section=1; print; next} /^[\[]/ {delete_section=0} delete_section==0 {print}' delete-node > delete-node.tmp
+awk 'BEGIN {delete_section=0} /^[\[][delete-node][\]]/ {delete_section=1; print; next} /^[\[]/ {delete_section=0} delete_section==0 {print}' delete-node > delete-node.tmp
 mv delete-node.tmp delete-node
 
 echo "done."
