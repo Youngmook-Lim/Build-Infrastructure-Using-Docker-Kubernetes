@@ -1,0 +1,5 @@
+[k8s-master]
+ubuntu@43.200.19.67
+
+[join-node]
+ubuntu@52.79.191.26

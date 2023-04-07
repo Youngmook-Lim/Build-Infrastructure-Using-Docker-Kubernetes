@@ -1,0 +1,31 @@
+---
+- name: Install Kubernetes
+  hosts: join-node
+  become: true
+
+  tasks:
+  - name: Add Kubernetes GPG key
+    apt_key:
+      url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+      state: present
+
+  - name: Add Kubernetes repository
+    apt_repository:
+      repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+      state: present
+      filename: kubernetes
+
+  - name: Install Kubernetes
+    apt:
+      name:
+        - kubelet
+        - kubeadm
+        - kubectl
+      state: present
+
+  - name: Enable kubelet service
+    systemd:
+      name: kubelet
+      enabled: true
+      masked: false
+      state: started

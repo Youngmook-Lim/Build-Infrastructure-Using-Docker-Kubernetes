@@ -1,0 +1,24 @@
+---
+- name: Delete nodes from Kubernetes cluster
+  hosts: delete-node
+  gather_facts: no
+  tasks:
+    - name: Get internal IP of the delete-node
+      command: hostname -i
+      register: internal_ip
+
+    - name: Transform internal IP into a specific format
+      set_fact:
+        formatted_ip: "ip-{{ internal_ip.stdout.split('.')[0] }}-{{ internal_ip.stdout.split('.')[1] }}-{{ internal_ip.stdout.split('.')[2] }}-{{ internal_ip.stdout.split('.')[3] }}"
+
+    - name: Print the formatted IP
+      debug:
+        msg: "{{ formatted_ip }}"
+
+- name: Run kubectl delete nodes on k8s-master
+  hosts: k8s-master
+  gather_facts: no
+  tasks:
+    - name: Delete nodes using kubectl
+      command: kubectl delete nodes {{ hostvars[item]['formatted_ip'] }}
+      with_items: "{{ groups['delete-node'] }}"
