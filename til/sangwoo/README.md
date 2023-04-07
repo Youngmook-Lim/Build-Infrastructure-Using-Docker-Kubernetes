@@ -32,7 +32,7 @@
 - [x]  jenkins 대기큐 동작 확인
 
 ### 2023-03-17 ~ 2023-03-20 작업 내용
-- [ ]  PriorityQueue Sorter로 대기큐 정렬 구현 (삽질했으나 실패 ㅠㅠ)
+- [ ]  PriorityQueue Sorter로 대기큐 정렬 구현
 
 ### 2023-03-21 작업 내용
 - [x] 커밋 해시값 - 이전에 이미 빌드된 커밋인지 확인
@@ -44,4 +44,10 @@
 - [x]  이전에 빌드된 커밋인지 확인하는 기능을 script로 만들기
     - [x]  Jenkins Freestyle Job에서 동작하도록 만들기
     - [x]  Jenkins Pipeline Script로 변환 (Jenkinsfile)
+
+### 2023-03-23 ~ 24 작업 내용
+- [x]  PriorityQueue Sorter로 대기큐 정렬 구현
+
+
+
 
