@@ -91,7 +91,7 @@
 ## 💡 기술 특이점
 
 - 다양한 언어(Java, C, C#)에 대한 일관된 빌드 환경 제공
-- SonarQube를 이용한 소스코드 정적 검사로 코드의 Quality 검증 자동화
+- SonarQube를 이용한 소스코드 정적 검사로 코드의 품질 검증 자동화
 - 동시다발적인 빌드 요청에 대하여 priority를 통한 효율적인 분산 처리 수행
 - Kubernetes를 통하여 클러스터 내 워커노드 관리 및 복구
 - Ansible playbook과 Jenkins CLI를 이용하여 빌드 Pipeline 뿐만 아니라 신규 빌드 서버에 대한 초기 설정까지 자동화
