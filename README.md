@@ -103,7 +103,7 @@
 
 ### 🎨 아키텍처 구성도
 
-![image](https://user-images.githubusercontent.com/89143804/229290404-ded8a4aa-e05e-43b3-af08-64cfb16356e9.png)
+![image](https://user-images.githubusercontent.com/89143804/230901052-8015d417-52c7-428d-8c4c-b34aed37ed2b.png)
 
 ## 📂 프로젝트 산출물
 
