@@ -113,6 +113,7 @@
 - [플로우 차트](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/master/docs/daeguops_flow_chart.md)
 - [아키텍처 구성도](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/master/docs/daeguops_architecture_diagram.md)
 - [시퀀스 다이어그램](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/master/docs/daeguops_sequence_diagram.md)
+- [최종 발표 PPT](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/master/docs/daeguops_final.pdf)
 
 ## 🦹‍ 팀 소개
 
