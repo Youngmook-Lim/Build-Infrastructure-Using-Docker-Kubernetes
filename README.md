@@ -36,6 +36,18 @@
 
 ![show_build_result](https://user-images.githubusercontent.com/89143804/230899266-344e0626-3b67-47ae-adbb-2bf65f37de89.gif)
 
+### SonarQube 검사 결과
+
+- 빌드가 성공적으로 이루어졌다면 SonarQube 검사 결과에 대한 정보를 확인할 수 있습니다.
+
+![sonarqube_report](https://user-images.githubusercontent.com/89143804/230900531-bb46fb1f-0458-409c-bf0a-ef27bfda25e1.gif)
+
+### Grafana를 통한 서버 모니터링
+
+- 모니터링 페이지를 이용하여 각 서버들의 상태를 확인할 수 있습니다.
+
+![monitoring](https://user-images.githubusercontent.com/89143804/230900549-18055f3f-992b-4af8-a249-02d6b9010c74.gif)
+
 ## 📋 사용 설명서
 
 - [DaeGuOps\_사용설명서](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/master/porting-manual/porting_manual.md)
