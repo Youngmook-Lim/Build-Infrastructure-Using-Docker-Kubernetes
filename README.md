@@ -109,12 +109,13 @@
 
 ## 📂 프로젝트 산출물
 
-- [프로젝트 기획서](https://miracle3070.notion.site/23fb522bbc574c3e8d842d299ef7a5f9)
-- [기능 명세서](https://miracle3070.notion.site/_230330-52653dbcd69943d29191a76b2786d2fb)
-- [간트 차트](https://miracle3070.notion.site/bfef572eea6a4cf89022477c5c3a1cfb)
-- [플로우 차트](https://miracle3070.notion.site/74e0c543780a458293a8b06e1524c124)
-- [아키텍처 구성도](https://miracle3070.notion.site/cf6efbf8366647bfa2768c7bc160e2ab)
-- [시퀀스 다이어그램](https://miracle3070.notion.site/a0b613abded1439da15b65b4dcf7f4d6)
+- [프로젝트 기획서](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/master/docs/daeguops_proposal.md)
+- [기능 명세서](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/master/docs/daeguops_function_specification.md)
+- [간트 차트](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/master/docs/daeguops_gantt_chart.md)
+- [플로우 차트](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/master/docs/daeguops_flow_chart.md)
+- [아키텍처 구성도](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/master/docs/daeguops_architecture_diagram.md)
+- [시퀀스 다이어그램](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/master/docs/daeguops_sequence_diagram.md)
+- [최종 발표 PPT](https://lab.ssafy.com/s08-s-project/S08P21S003/-/blob/master/docs/daeguops_final.pdf)
 
 ## 🦹‍ 팀 소개
 
