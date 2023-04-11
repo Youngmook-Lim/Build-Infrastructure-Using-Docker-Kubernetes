@@ -1,0 +1,108 @@
+---
+- name: Create nodeExporter daemonset
+  hosts: k8s-master
+  remote_user: ubuntu
+  tasks:
+    - name: Ensure kubectl is installed
+      ansible.builtin.package:
+        name: kubectl
+        state: present
+
+    - name: Create monitoring namespace
+      ansible.builtin.command:
+        cmd: kubectl create namespace monitoring
+      register: namespace_result
+      changed_when: "'created' in namespace_result.stdout"
+      failed_when: "namespace_result.rc != 0 and 'AlreadyExists' not in namespace_result.stderr"
+
+    - name: Create nodeExporter daemonset manifest
+      ansible.builtin.copy:
+        content: |
+          apiVersion: apps/v1
+          kind: DaemonSet
+          metadata:
+            labels:
+              app.kubernetes.io/component: exporter
+              app.kubernetes.io/name: node-exporter
+            name: node-exporter
+            namespace: monitoring
+          spec:
+            selector:
+              matchLabels:
+                app.kubernetes.io/component: exporter
+                app.kubernetes.io/name: node-exporter
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/component: exporter
+                  app.kubernetes.io/name: node-exporter
+              spec:
+                tolerations:
+                - key: node-role.kubernetes.io/control-plane
+                  effect: NoSchedule
+                containers:
+                - args:
+                  - --path.sysfs=/host/sys
+                  - --path.rootfs=/host/root
+                  - --no-collector.wifi
+                  - --no-collector.hwmon
+                  - --collector.filesystem.ignored-mount-points=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/pods/.+)($|/)
+                  - --collector.netclass.ignored-devices=^(veth.*)$
+                  name: node-exporter
+                  image: prom/node-exporter
+                  ports:
+                    - containerPort: 9100
+                      protocol: TCP
+                  resources:
+                    limits:
+                      cpu: 250m
+                      memory: 180Mi
+                    requests:
+                      cpu: 102m
+                      memory: 180Mi
+                  volumeMounts:
+                  - mountPath: /host/sys
+                    mountPropagation: HostToContainer
+                    name: sys
+                    readOnly: true
+                  - mountPath: /host/root
+                    mountPropagation: HostToContainer
+                    name: root
+                    readOnly: true
+                volumes:
+                - hostPath:
+                    path: /sys
+                  name: sys
+                - hostPath:
+                    path: /
+                  name: root
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: node-exporter
+            namespace: monitoring
+            annotations:
+                prometheus.io/scrape: 'true'
+                prometheus.io/port:   '9100'
+          spec:
+            selector:
+                app.kubernetes.io/component: exporter
+                app.kubernetes.io/name: node-exporter
+            ports:
+            - name: node-exporter
+              protocol: TCP
+              port: 9100
+              targetPort: 9100
+        dest: /tmp/nodeExporter-daemonset-and-service.yml
+
+    - name: Deploy nodeExporter daemonset
+      ansible.builtin.command:
+        cmd: kubectl apply -f /tmp/nodeExporter-daemonset-and-service.yml
+      register: deploy_result
+      changed_when: "'created' in deploy_result.stdout or 'configured' in deploy_result.stdout"
+
+    - name: Remove temporary manifest file
+      ansible.builtin.file:
+        path: /tmp/nodeExporter-daemonset-and-service.yml
+        state: absent
