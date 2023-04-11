@@ -124,7 +124,7 @@
 |                          임영묵                           |                       김성태                       |                          김성한                           |                          양희제                           |                       장재욱                       |                       한상우                       |
 | :-------------------------------------------------------: | :------------------------------------------------: | :-------------------------------------------------------: | :-------------------------------------------------------: | :------------------------------------------------: | :------------------------------------------------: |
 |     [Youngmook-Lim](https://github.com/Youngmook-Lim)     |                      seongtae                      |            [s-ggul](https://github.com/s-ggul)            |         [heejeyang](https://github.com/HeeJeYang)         |                       jaeuk                        |                       sangu                        |
-| ![](https://avatars.githubusercontent.com/u/94703258?v=4) | ![](https://avatars.githubusercontent.com/u/0?v=4) | ![](https://avatars.githubusercontent.com/u/80890062?v=4) | ![](https://avatars.githubusercontent.com/u/89143804?v=4) | ![](https://avatars.githubusercontent.com/u/0?v=4) | ![](https://avatars.githubusercontent.com/u/0?v=4) |
+| ![](https://avatars.githubusercontent.com/u/94703258?v=4) | ![](https://avatars.githubusercontent.com/u/68246479?v=4) | ![](https://avatars.githubusercontent.com/u/80890062?v=4) | ![](https://avatars.githubusercontent.com/u/89143804?v=4) | ![](https://avatars.githubusercontent.com/u/0?v=4) | ![](https://avatars.githubusercontent.com/u/0?v=4) |
 
 ## 📐 팀원 역할
 
