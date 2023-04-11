@@ -21,7 +21,7 @@ import org.jenkinsci.Symbol;
 import hudson.model.TopLevelItem;
 import com.cloudbees.hudson.plugins.folder.Folder;
 
-public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
+public class PipelineGeneratingBuilder extends Builder implements SimpleBuildStep {
 
     private final String name;
     private final String gitUrl;
@@ -33,7 +33,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
 
     @DataBoundConstructor
-    public HelloWorldBuilder(String gitUrl, String name, String language, String buildEnv, String branch, String commitHash, String buildPath) {
+    public PipelineGeneratingBuilder(String gitUrl, String name, String language, String buildEnv, String branch, String commitHash, String buildPath) {
         this.name = name;
         this.gitUrl = gitUrl;
         this.language = language;
@@ -611,28 +611,28 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
         public FormValidation doCheckBuildPath(@QueryParameter String buildPath) throws IOException, ServletException {
             if (buildPath.length() == 0) {
-                return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingGitURL());
+                return FormValidation.error(Messages.PipelineGeneratingBuilder_DescriptorImpl_errors_missingGitURL());
             }
             return FormValidation.ok();
         }
 
         public FormValidation doCheckGitUrl(@QueryParameter String gitUrl) throws IOException, ServletException {
             if (gitUrl.length() == 0) {
-                return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingGitURL());
+                return FormValidation.error(Messages.PipelineGeneratingBuilder_DescriptorImpl_errors_missingGitURL());
             }
             return FormValidation.ok();
         }
 
         public FormValidation doCheckName(@QueryParameter String value) throws IOException, ServletException {
             if (value.length() == 0)
-                return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingName());
+                return FormValidation.error(Messages.PipelineGeneratingBuilder_DescriptorImpl_errors_missingName());
             if (value.length() < 4)
-                return FormValidation.warning(Messages.HelloWorldBuilder_DescriptorImpl_warnings_tooShort());
+                return FormValidation.warning(Messages.PipelineGeneratingBuilder_DescriptorImpl_warnings_tooShort());
             return FormValidation.ok();
         }
 
         public FormValidation doCheckBranch(@QueryParameter String value) throws IOException, ServletException {
-            if(value.length() == 0) return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingBranch());
+            if(value.length() == 0) return FormValidation.error(Messages.PipelineGeneratingBuilder_DescriptorImpl_errors_missingBranch());
 
             return FormValidation.ok();
         }
@@ -644,7 +644,7 @@ public class HelloWorldBuilder extends Builder implements SimpleBuildStep {
 
         @Override
         public String getDisplayName() {
-            return Messages.HelloWorldBuilder_DescriptorImpl_DisplayName();
+            return Messages.PipelineGeneratingBuilder_DescriptorImpl_DisplayName();
         }
 
     }
